@@ -7,7 +7,7 @@ let angle= 0;
 let volmax = 0;
 let decayFactor = 0.995;
 let noiseThreshold = 0.05; // Defina o valor do threshold para ignorar ruídos
-let vol; // Mover a definição de vol para fora da função setup
+let vol;
 
 //nuvens
 let clouds = new Array(20);
@@ -18,10 +18,7 @@ let starPositions = new Array(25);
 
 //ondas
 let yoff = 0.0; 
-let waveOffset = 0; // Adicione esta linha para criar um deslocamento horizontal para as ondas
-
-//predios
-let l = 10;
+let waveOffset = 0; 
 
 //camera
 let capture;
@@ -32,16 +29,16 @@ let skyRed, skyGreen, skyBlue;
 
 let avgR, avgG, avgB;
 
-//altura
+//pilha
 let altura = 0;
 let alturaDecayFactor = 0.995;
 
-// Variáveis para armazenar os valores de orientação
-let gamma = 0; // Inclinação do dispositivo (esquerda e direita)
+// Inclinação do dispositivo (esquerda e direita)
+let gamma = 0; 
 
 // Adiciona um evento listener para capturar os dados de orientação do dispositivo
 window.addEventListener('deviceorientation', (event) => {
-  gamma = event.gamma; // Inclinação do dispositivo em graus (esquerda e direita)
+  gamma = event.gamma; // Obtém o valor de inclinação do dispositivo
 });
 
 let showAbout = false;
@@ -49,10 +46,13 @@ let aboutButtonText = "Sobre";
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
+
+  //inicializar microfone
   mic = new p5.AudioIn();
   mic.start();
-  vol = mic.getLevel(); // Inicializar vol
+  vol = mic.getLevel();
 
+  //inicializar camera
   capture = createCapture(VIDEO);
   capture.size(320, 240);
   capture.hide();
@@ -75,12 +75,11 @@ function draw() {
   // Desenhar Camera
   image(capture, 0, 0, capture.width, capture.height);
 
-  
   // Capturar os pixels da área da câmera
   let cameraPixels = get(0, 0, capture.width, capture.height);
   cameraPixels.loadPixels();
   
-  let stepSize = 1; // Processar menos pixels
+  let stepSize = 1;
   for (let y = 0; y < cameraPixels.height; y += stepSize) {
     for (let x = 0; x < cameraPixels.width; x += stepSize) {
       let i = (cameraPixels.width * y + x) * 4;
@@ -123,16 +122,12 @@ function draw() {
     star(starPositions[i].x, starPositions[i].y, 2, random(4, 10), 5);
   }
 
-  //Desenha Montanhas com efeito paralaxe
-  let parallax1 = map(gamma, -90, 90, -130, 130); 
-  let parallax2 = map(gamma, -90, 90, -80, 80); 
-  let parallax3 = map(gamma, -90, 90, -30, 30); 
-
   // Verifica se a largura da janela é menor que 768 pixels
-  let heightFactor = windowWidth < 768 ? 1.4 : 1; // Ajusta o fator de altura para 0.5 em ecrãs menores
+  let heightFactor = windowWidth < 768 ? 1.4 : 1;
 
   // Desenha as montanhas
   noStroke();
+
   //montanha 1
   fill(3, 118, 61 );  
   triangle(-80, height, width / 3, height / 2 * heightFactor, width/3 *2 + 80, height);
@@ -148,19 +143,11 @@ function draw() {
   triangle(width/4 - 80, height,  width / 2, height / 2.5 * heightFactor, width /4 * 3 + 80, height);
 
 
-
+  // Volume Microfone e velocidade
   if (vol > volmax) {
     volmax = vol;
   }
-    
-  rectWidth = map(vol, 0, 1, 0, width); 
-  rectColor = map(vol, 0, 1, 0, 255);
-  velocity = map(volmax, 0, 1, 0, 0.5); // Always update velocity based on volume
-     
-  rectMode(CORNER);
-  fill(0, rectColor, rectColor/3);
-  //rect(0, 0, rectWidth, 50);
-    
+  velocity = map(volmax, 0, 1, 0, 0.5); 
   angle += velocity;
 
   // Atualizar as posições das nuvens
@@ -173,7 +160,7 @@ function draw() {
   fill(4, 105, 151);
   beginShape();
   let xoff = waveOffset; // Use waveOffset como o valor inicial de xoff
-  let waveHeight = gamma <= 0 ? 10 : map(gamma, 0, 90, 10, 60); // Determina a altura da onda com base na posição do cursor
+  let waveHeight = gamma <= 0 ? 10 : map(gamma, 0, 90, 10, 60); // Determina a altura da onda com base na inclinação do dispositivo
 
   for (let x = 0; x <= width+10; x += 10) {
     let y = map(sin(xoff), -1, 3, 6 * height / 7 - waveHeight, 6 * height / 7 + waveHeight);
@@ -185,14 +172,14 @@ function draw() {
   vertex(0, height);
   endShape(CLOSE);
 
-  // Ajusta a velocidade das ondas com base na posição do cursor
+  // Ajusta a velocidade das ondas com base na inclinação do dispositivo
   let waveSpeed = gamma <= 0 ? 0.05 : map(gamma, 0, 90, 0.05, 0.15);
-  waveOffset -= waveSpeed; // Aumente o deslocamento horizontal a cada quadro para mover as ondas da esquerda para a direita
+  waveOffset -= waveSpeed; // Aumente o deslocamento horizontal para mover as ondas da esquerda para a direita
 
   // Desenha a segunda onda por cima da primeira
-  fill(255, 255, 255, 100); // Cor branca com transparência
+  fill(255, 255, 255, 100); 
   beginShape();
-  xoff = waveOffset + 100; // Use um deslocamento diferente para a segunda onda
+  xoff = waveOffset + 100; 
   waveHeight = gamma <= 0 ? 5 : map(gamma, 0, 90, 5, 30); // Altura da segunda onda
 
   for (let x = 0; x <= width+10; x += 10) {
@@ -227,7 +214,7 @@ function draw() {
     stroke(125);
     fill(160);
     translate(width / 2, height / 2);
-    scale(0.8); // Escala a ventoinha para 0.8 do tamanho original
+    scale(0.8); 
     rotate(angle);
     rectMode(CENTER);
     circle(0, 0, 50);
@@ -271,29 +258,28 @@ function draw() {
       
   volmax *= decayFactor;
 
-  //desenha pilha
-
+  //determina altura da pilha com base no volume do microfone
   if(volmax> 0.4){
     altura -= map(volmax, 0.20, 1, 0, 1.5);
   };
 
+  //determina altura da pilha com base na luminosidade da camera
   if(avgBright > 140){
     altura -= map(avgBright, 130, 255, 0, 1);
   };
 
+  //determina altura da pilha com base na inclinação do dispositivo
   if(waveHeight > 10){
     altura -= map(waveHeight, 10, 60, 0, 1);
   };
 
   altura *= alturaDecayFactor;
 
-  // Constrain altura to be between -110 and 0
+  // Constrain altura para ser ente -110 e 0
   altura = constrain(altura, -110, 0);
 
-  console.log(altura);
-
+  // Desenha a pilha
   push();
-
   let previousHeight = windowWidth < 768 ? 18 * height / 20 : 17 * height / 20;
   translate(2*width/8, previousHeight);
 
@@ -335,20 +321,6 @@ function draw() {
   endShape();  
 
   //desenha carga
-
-  /*
-  fill(30);
-  beginShape();
-  curveVertex(-45, -50);
-  curveVertex(45, -50);
-  curveVertex(45, 50);
-  curveVertex(-45, 50);
-  curveVertex(-45, -50);
-  curveVertex(45, -50);
-  curveVertex(45, 50);
-  endShape();
-  */
-
   fill(0,128,0);
   translate(0, 55);
   beginShape();
@@ -382,9 +354,9 @@ function drawAboutButton() {
   text(aboutButtonText, 10, 10);
 }
 
-// Função para desenhar o texto informativo
+// Função para desenhar o texto 
 function drawAboutText() {
-  fill(255, 200); // Fundo semitransparente
+  fill(255, 200); 
   noStroke();
   textSize(16);
   textAlign(LEFT, TOP);
@@ -393,17 +365,16 @@ function drawAboutText() {
   // Calcula a altura do texto
   let textHeight = textAscent() + textDescent();
   let lines = aboutText.split('\n').length;
-  let rectHeight = textHeight * lines + 10; // Altura do retângulo com padding
+  let rectHeight = textHeight * lines + 10;
 
   // Desenha o fundo do texto
-  rect(5, 35, width - 10, rectHeight); // Fundo do texto
-
-  fill(0); // Cor do texto
-  text(aboutText, 10, 40, width - 20); // Ajusta a largura do texto para caber na tela
+  rect(5, 35, width - 10, rectHeight); 
+  fill(0); 
+  text(aboutText, 10, 40, width - 20); 
 }
 
-// Função para lidar com cliques do mouse
 function mousePressed() {
+  // Inicializa o áudio ao clicar em qualquer lugar da tela
   userStartAudio();
 
   // Verifica se o botão "Sobre" foi clicado
@@ -413,7 +384,7 @@ function mousePressed() {
   }
 }
 
-// Corrigir a função cloud para usar os parâmetros x e y
+// Função para desenhar as nuvens
 function cloud(x, y) {
   let alpha = map(y, 0, height / 3, 50, height/2);
   fill(250, alpha);
@@ -423,6 +394,7 @@ function cloud(x, y) {
   ellipse(x - 20, y + 10, 70, 50);
 }
 
+// Função para verificar se a posição x, y já contém uma nuvem
 function indexExistsClouds(x, y) {
   for (let star of starPositions) {
     if (abs(star.x - x) < 30 && abs(star.y - y) < 20) {
@@ -432,7 +404,7 @@ function indexExistsClouds(x, y) {
   return false;
 }
 
-// Atualizar a função generateClouds para inicializar cloudOffsets
+// Função para gerar as posições das nuvens
 function generateClouds() {
   cloudOffsets = new Array(clouds.length).fill(0);
   for (let i = 0; i < clouds.length; i++) {
@@ -449,7 +421,7 @@ function updateClouds() {
     let direction = clouds[i].x < width / 2 ? -1 : 1;
     let speedFactor = map(clouds[i].y, 0, height / 3, 0.5, 1.5) * widthFactor; // Ajusta a velocidade com base na posição Y e largura da tela
     let distanceFactor = map(clouds[i].y, 0, height / 3, 1, 2) * widthFactor; // Ajusta a distância com base na posição Y e largura da tela
-    cloudOffsets[i] += direction * vol * 10 * speedFactor * distanceFactor; // Ajuste o fator de multiplicação conforme necessário
+    cloudOffsets[i] += direction * vol * 10 * speedFactor * distanceFactor; 
     cloudOffsets[i] *= 0.995; // Fator de desaceleração para retornar à posição inicial
   }
 }
@@ -461,6 +433,7 @@ function drawClouds() {
   }
 }
 
+// Função para desenhar uma estrela
 function star(x, y, radius1, radius2, npoints) {
   let angle = TWO_PI / npoints;
   let halfAngle = angle / 2.0;
@@ -476,6 +449,7 @@ function star(x, y, radius1, radius2, npoints) {
   endShape(CLOSE);
 }
 
+// Função para verificar se a posição x, y já contém uma estrela
 function indexExistsStars(x, y) {
   for (let star of starPositions) {
     if (abs(star.x - x) < 30 && abs(star.y - y) < 20) {
@@ -485,6 +459,7 @@ function indexExistsStars(x, y) {
   return false;
 }
 
+// Função para gerar as posições das estrelas
 function generateStars() {
   for (let i = 0; i < starPositions.length; i++) {
     let x, y;
@@ -494,47 +469,3 @@ function generateStars() {
     starPositions[i] = { x, y };
   }
 }
-
-/*
-function building(x, y, scaleFactor){
-  push();
-  translate(x, y);
-  scale(scaleFactor);
-  strokeWeight(1/scaleFactor);
-  rectMode(CENTER);
-  
-  fill(150);
-  stroke(100);
-  rect(0,0,l, 3*l);
-  
-  fill(238,221,130);
-  stroke(191, 173, 78);
-  for(let y = -13; y<15; y+=4){
-    square(3,y,l/4);
-    square(-3,y,l/4);
-    square(0,y,l/4);
-  }
-  
-  stroke(0);
-  beginShape();
-  fill(0);
-  vertex(-l/3+1,-l-8);
-  vertex(l/3+1,-l-8);
-  vertex(l/3-1, -7-8)
-  vertex(-l/3-1, -7-8);
-  endShape(CLOSE);
-  
-  rectMode(CORNER);
-  fill(0);
-  rect(l/3,-l-8, 0.5, 3);
-  
-  beginShape();
-  fill(12, 26, 171);
-  vertex(-l/3+1,-l-7.5);
-  vertex(l/3,-l-7.5);
-  vertex(l/3-1, -7-8.5)
-  vertex(-l/3-0.5, -7-8.5);
-  endShape(CLOSE);
-  pop();
-}
-*/
