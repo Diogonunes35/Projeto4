@@ -44,6 +44,9 @@ window.addEventListener('deviceorientation', (event) => {
   gamma = event.gamma; // Inclinação do dispositivo em graus (esquerda e direita)
 });
 
+let showAbout = false;
+let aboutButtonText = "Sobre";
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   mic = new p5.AudioIn();
@@ -359,10 +362,55 @@ function draw() {
   endShape();
 
   pop();
+ 
+  // Desenha o botão "Sobre"
+  drawAboutButton();
+
+  // Exibe o texto informativo se o botão "Sobre" for clicado
+  if (showAbout) {
+    drawAboutText();
+  }
 }
 
+// Função para desenhar o botão "Sobre"
+function drawAboutButton() {
+  fill(255, 200); // Fundo semitransparente
+  stroke(100);
+  fill(255); // Cor do texto
+  textSize(20);
+  textAlign(LEFT, TOP);
+  text(aboutButtonText, 10, 10);
+}
+
+// Função para desenhar o texto informativo
+function drawAboutText() {
+  fill(255, 200); // Fundo semitransparente
+  noStroke();
+  textSize(16);
+  textAlign(LEFT, TOP);
+  let aboutText = "Esta é a Ilha Renovavel. Nesta ilha toda a sua energia é gerada por energia renovavel seja ela atraves de vento, da luz do sol ou do mar. Tu es a força que gera a energia desta ilha!\n\nTrabalho realizado por Diogo Nunes no ambito da cadeira de Projeto 4 da Licenciatura de Design e Multimédia da Universidade de Coimbra. 2024/25";
+  
+  // Calcula a altura do texto
+  let textHeight = textAscent() + textDescent();
+  let lines = aboutText.split('\n').length;
+  let rectHeight = textHeight * lines + 10; // Altura do retângulo com padding
+
+  // Desenha o fundo do texto
+  rect(5, 35, width - 10, rectHeight); // Fundo do texto
+
+  fill(0); // Cor do texto
+  text(aboutText, 10, 40, width - 20); // Ajusta a largura do texto para caber na tela
+}
+
+// Função para lidar com cliques do mouse
 function mousePressed() {
   userStartAudio();
+
+  // Verifica se o botão "Sobre" foi clicado
+  if (mouseX >= 10 && mouseX <= 10 + textWidth(aboutButtonText) && mouseY >= 10 && mouseY <= 30) {
+    showAbout = !showAbout;
+    aboutButtonText = showAbout ? "X" : "Sobre";
+  }
 }
 
 // Corrigir a função cloud para usar os parâmetros x e y
@@ -447,6 +495,7 @@ function generateStars() {
   }
 }
 
+/*
 function building(x, y, scaleFactor){
   push();
   translate(x, y);
@@ -488,11 +537,4 @@ function building(x, y, scaleFactor){
   endShape(CLOSE);
   pop();
 }
-
-/*
-
-  building(650, 430, 2);
-  building(880, 500, 2);
-  building(850, 470, 2);
-
-  */
+*/
