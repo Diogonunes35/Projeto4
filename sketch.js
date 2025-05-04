@@ -64,8 +64,6 @@ function draw() {
   }
 }
 
-
-
 function mousePressed() {
   if (faseAtual < maxFases - 1) {
     faseAtual++;
@@ -74,3 +72,7 @@ function mousePressed() {
   }
 }
 
+function limparLocalStorage() {
+  localStorage.clear();
+  console.log("Local storage limpo!");
+} 
