@@ -1,9 +1,9 @@
 let seed;
 let faseAtual = 0;
 let componentes = []; // Lista de imagens da planta
+let vetoresFases = []; // Matriz de vetores para cada fase
 let planta = []; // Componentes atuais da planta
 let maxFases = 5;
-let vetoresFases = []; // Matriz de vetores para cada fase
 
 function preload() {
   // Carrega os vetores de cada fase dinamicamente
@@ -15,6 +15,8 @@ function preload() {
     }
     vetoresFases.push(vetoresParaFase);
   }
+
+  console.log(vetoresFases);
 }
 
 function setup() {
@@ -47,10 +49,12 @@ function gerarPlanta() {
   randomSeed(int(seed)); // Reinicia o gerador de números aleatórios com a seed
 
   planta = []; // Reinicia o vetor planta
-  for (let i = 0; i <= faseAtual; i++) { // Inclui a fase atual
+  for (let i = 0; i < faseAtual; i++) { // Inclui a fase atual
     let vetorIndex = int(random(0, 5)); // Escolhe um dos 5 vetores para a fase atual
     planta.push(vetoresFases[i][vetorIndex]); // Adiciona o vetor escolhido
   }
+
+  console.log(planta);
 
   localStorage.setItem('planta', JSON.stringify(planta));
 }
