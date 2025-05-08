@@ -2,14 +2,19 @@ let seed;
 let faseAtual = 0;
 let componentes = []; // Lista de imagens da planta
 let planta = []; // Componentes atuais da planta
-let maxFases;
+let maxFases = 5;
+let vetoresFases = []; // Matriz de vetores para cada fase
 
 function preload() {
-  componentes.push(loadImage('assets/parte1.svg'));
-  componentes.push(loadImage('assets/parte2.svg'));
-  componentes.push(loadImage('assets/parte3.svg'));
-  componentes.push(loadImage('assets/parte4.svg'));
-  componentes.push(loadImage('assets/flor.svg')); 
+  // Carrega os vetores de cada fase dinamicamente
+  for (let fase = 0; fase < maxFases; fase++) {
+    let vetoresParaFase = [];
+    for (let i = 0; i < 5; i++) {
+      let caminho = `assets/fase${fase}/${i}.svg`;
+      vetoresParaFase.push(loadImage(caminho));
+    }
+    vetoresFases.push(vetoresParaFase);
+  }
 }
 
 function setup() {
@@ -21,7 +26,8 @@ function setup() {
     maxFases = parseInt(localStorage.getItem('maxFases')) || 5;
     planta = JSON.parse(localStorage.getItem('planta')) || [];
   } else {
-    seed = 1;
+    //seed = Math.floor(Math.random() * 1000000).toString(); // Gera uma nova seed
+    seed = 123456; // Para testes
     faseAtual = 0;
     maxFases = 5;
     planta = [];
@@ -37,17 +43,13 @@ function setup() {
 }
 
 function gerarPlanta() {
-  // Garante que o vetor planta seja gerado de forma determinística com base na seed
+  // Usa a seed para escolher um vetor para cada fase
   randomSeed(int(seed)); // Reinicia o gerador de números aleatórios com a seed
 
   planta = []; // Reinicia o vetor planta
-  for (let i = 0; i <= faseAtual; i++) {
-    if (i === maxFases - 1) {
-      planta.push(4); // Última fase é sempre a flor
-    } else {
-      let compIndex = int(random(0, 4)); // Escolhe um índice entre 0 e 3
-      planta.push(compIndex);
-    }
+  for (let i = 0; i <= faseAtual; i++) { // Inclui a fase atual
+    let vetorIndex = int(random(0, 5)); // Escolhe um dos 5 vetores para a fase atual
+    planta.push(vetoresFases[i][vetorIndex]); // Adiciona o vetor escolhido
   }
 
   localStorage.setItem('planta', JSON.stringify(planta));
@@ -67,8 +69,7 @@ function draw() {
   for (let i = 0; i < planta.length; i++) {
     let posX = baseX;
     let posY = baseY - (i * distanciaEntrePartes);
-    let compIndex = planta[i];
-    image(componentes[compIndex], posX, posY, larguraDesejada, alturaDesejada);
+    image(planta[i], posX, posY, larguraDesejada, alturaDesejada);
   }
 }
 
