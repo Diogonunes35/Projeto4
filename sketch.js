@@ -1,9 +1,9 @@
 let seed;
 let faseAtual = 0;
 let componentes = []; // Lista de imagens da planta
+let vetoresFases = []; // Matriz de vetores para cada fase
 let planta = []; // Componentes atuais da planta
 let maxFases = 5;
-let vetoresFases = []; // Matriz de vetores para cada fase
 
 function preload() {
   // Carrega os vetores de cada fase dinamicamente
@@ -11,48 +11,81 @@ function preload() {
     let vetoresParaFase = [];
     for (let i = 0; i < 5; i++) {
       let caminho = `assets/fase${fase}/${i}.svg`;
-      vetoresParaFase.push(loadImage(caminho));
+      let img = loadImage(caminho, 
+        () => console.log(`Imagem carregada: ${caminho}`), 
+        () => console.error(`Erro ao carregar: ${caminho}`)
+      );
+      vetoresParaFase.push(img);
     }
     vetoresFases.push(vetoresParaFase);
   }
+
+  console.log(vetoresFases);
 }
 
 function setup() {
-  createCanvas(400, 700);
+  createCanvas(windowWidth, windowHeight);
 
-  if (localStorage.getItem('plantaSeed')) {
-    seed = localStorage.getItem('plantaSeed');
-    faseAtual = parseInt(localStorage.getItem('faseAtual')) || 0;
-    maxFases = parseInt(localStorage.getItem('maxFases')) || 5;
-    planta = JSON.parse(localStorage.getItem('planta')) || [];
-  } else {
-    //seed = Math.floor(Math.random() * 1000000).toString(); // Gera uma nova seed
-    seed = 123456; // Para testes
-    faseAtual = 0;
-    maxFases = 5;
-    planta = [];
+  try {
+    if (localStorage.getItem('plantaSeed')) {
+      seed = localStorage.getItem('plantaSeed');
+      faseAtual = parseInt(localStorage.getItem('faseAtual')) || 0;
+      maxFases = parseInt(localStorage.getItem('maxFases')) || 5;
 
-    localStorage.setItem('plantaSeed', seed);
-    localStorage.setItem('faseAtual', faseAtual);
-    localStorage.setItem('maxFases', maxFases);
-    localStorage.setItem('planta', JSON.stringify(planta));
+      // Recria o vetor planta com base nos índices salvos
+      let plantaIndices = JSON.parse(localStorage.getItem('planta')) || [];
+      planta = plantaIndices.map((index, i) => {
+        if (vetoresFases[i]) {
+          return vetoresFases[i][index];
+        } else {
+          console.error(`Fase ${i} não encontrada em vetoresFases.`);
+          return null;
+        }
+      });
+    } else {
+      inicializarDados();
+    }
+  } catch (e) {
+    console.error("Erro ao carregar dados do localStorage:", e);
+    inicializarDados();
   }
 
   randomSeed(int(seed)); 
   gerarPlanta();
 }
 
+function inicializarDados() {
+  seed = Math.floor(random(100000, 999999)); // Gera uma seed aleatória entre 100000 e 999999
+  faseAtual = 0;
+  maxFases = 5;
+  planta = [];
+
+  localStorage.setItem('plantaSeed', seed);
+  localStorage.setItem('faseAtual', faseAtual);
+  localStorage.setItem('maxFases', maxFases);
+  localStorage.setItem('planta', JSON.stringify([])); // Salva um vetor vazio
+}
+
 function gerarPlanta() {
-  // Usa a seed para escolher um vetor para cada fase
   randomSeed(int(seed)); // Reinicia o gerador de números aleatórios com a seed
 
   planta = []; // Reinicia o vetor planta
-  for (let i = 0; i <= faseAtual; i++) { // Inclui a fase atual
-    let vetorIndex = int(random(0, 5)); // Escolhe um dos 5 vetores para a fase atual
-    planta.push(vetoresFases[i][vetorIndex]); // Adiciona o vetor escolhido
+  let plantaIndices = []; // Vetor para salvar os índices das imagens
+
+  for (let i = 0; i <= faseAtual; i++) {
+    if (vetoresFases[i]) { // Verifica se a fase existe
+      let vetorIndex = int(random(0, 5)); // Escolhe um dos 5 vetores para a fase atual
+      planta.push(vetoresFases[i][vetorIndex]); // Adiciona o vetor escolhido
+      plantaIndices.push(vetorIndex); // Salva o índice
+    } else {
+      console.error(`Fase ${i} não encontrada em vetoresFases.`);
+    }
   }
 
-  localStorage.setItem('planta', JSON.stringify(planta));
+  console.log("Planta gerada:", planta);
+
+  // Salva apenas os índices no localStorage
+  localStorage.setItem('planta', JSON.stringify(plantaIndices));
 }
 
 function draw() {
@@ -67,17 +100,24 @@ function draw() {
   imageMode(CENTER);
 
   for (let i = 0; i < planta.length; i++) {
-    let posX = baseX;
-    let posY = baseY - (i * distanciaEntrePartes);
-    image(planta[i], posX, posY, larguraDesejada, alturaDesejada);
+    if (planta[i]) { // Verifica se a imagem foi carregada
+      let posX = baseX;
+      let posY = baseY - (i * distanciaEntrePartes);
+      image(planta[i], posX, posY, larguraDesejada, alturaDesejada);
+    } else {
+      console.warn(`Imagem da planta na posição ${i} não foi carregada.`);
+    }
   }
 }
 
 function mousePressed() {
   if (faseAtual < maxFases - 1) {
     faseAtual++;
+    console.log(`Fase atual: ${faseAtual}`); // Verifica se está incrementando
     gerarPlanta();
     localStorage.setItem('faseAtual', faseAtual);
+  } else {
+    console.log("Você já atingiu o número máximo de fases.");
   }
 }
 
