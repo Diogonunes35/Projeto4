@@ -24,7 +24,7 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(400, 700);
+  createCanvas(windowWidth, windowHeight);
 
   try {
     if (localStorage.getItem('plantaSeed')) {
@@ -55,7 +55,7 @@ function setup() {
 }
 
 function inicializarDados() {
-  seed = 123456; // Para testes
+  seed = Math.floor(random(100000, 999999)); // Gera uma seed aleatória entre 100000 e 999999
   faseAtual = 0;
   maxFases = 5;
   planta = [];
