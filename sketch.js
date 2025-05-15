@@ -10,7 +10,7 @@ function preload() {
   for (let fase = 0; fase < maxFases; fase++) {
     let vetoresParaFase = [];
     for (let i = 0; i < 5; i++) {
-      let caminho = `assets/fase${fase}/${i}.svg`;
+      let caminho = `assets/live/fase${fase}/${i}.svg`;
       let img = loadImage(caminho, 
         () => console.log(`Imagem carregada: ${caminho}`), 
         () => console.error(`Erro ao carregar: ${caminho}`)
@@ -93,9 +93,11 @@ function draw() {
 
   let baseX = width / 2;
   let baseY = height - 120; // Ponto inicial da base
-  let larguraDesejada = 90; // Largura desejada para os componentes
-  let alturaDesejada = 60;  // Altura desejada para os componentes
-  let distanciaEntrePartes = alturaDesejada - 10; // Distância entre os componentes
+
+  // Ajusta o tamanho da planta com base no tipo de dispositivo
+  let larguraDesejada = windowWidth > 768 ? 120 : 90; // Maior no PC, menor no telemóvel
+  let alturaDesejada = windowWidth > 768 ? 80 : 60;   // Maior no PC, menor no telemóvel
+  let distanciaEntrePartes = alturaDesejada - 10;    // Distância entre os componentes
 
   imageMode(CENTER);
 
