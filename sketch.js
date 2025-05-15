@@ -31,7 +31,17 @@ function setup() {
       seed = localStorage.getItem('plantaSeed');
       faseAtual = parseInt(localStorage.getItem('faseAtual')) || 0;
       maxFases = parseInt(localStorage.getItem('maxFases')) || 5;
-      planta = JSON.parse(localStorage.getItem('planta')) || [];
+
+      // Recria o vetor planta com base nos índices salvos
+      let plantaIndices = JSON.parse(localStorage.getItem('planta')) || [];
+      planta = plantaIndices.map((index, i) => {
+        if (vetoresFases[i]) {
+          return vetoresFases[i][index];
+        } else {
+          console.error(`Fase ${i} não encontrada em vetoresFases.`);
+          return null;
+        }
+      });
     } else {
       inicializarDados();
     }
@@ -53,7 +63,7 @@ function inicializarDados() {
   localStorage.setItem('plantaSeed', seed);
   localStorage.setItem('faseAtual', faseAtual);
   localStorage.setItem('maxFases', maxFases);
-  localStorage.setItem('planta', JSON.stringify(planta));
+  localStorage.setItem('planta', JSON.stringify([])); // Salva um vetor vazio
 }
 
 function gerarPlanta() {
