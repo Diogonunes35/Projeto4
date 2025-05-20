@@ -415,8 +415,8 @@ function draw() {
   // Botão para reviver planta se estiver morta
   if (showReviveButton && isDeadState) {
     fill(255, 0, 0);
-    rectMode(CENTER);
-    rect(width / 2, height / 2, 220, 60, 15);
+    rectMode(CORNER);
+    rect(width / 2 - 110, height / 2 - 30, 220, 60, 15);
     fill(255);
     textSize(22);
     textAlign(CENTER, CENTER);
@@ -425,8 +425,11 @@ function draw() {
 }
 
 function mousePressed() {
+  userStartAudio();
   // Se a planta estiver morta e o botão estiver visível, reseta tudo
   if (showReviveButton && isDeadState) {
+      if(mouseX > width / 2 - 110 && mouseX < width / 2 + 110 && mouseY > height / 2 - 30 && mouseY < height / 2 + 30) {
+
     showReviveButton = false;
     isDeadState = false;
     isBadState = false; // <- também deixa de estar bad
@@ -452,8 +455,8 @@ function mousePressed() {
     lastCareTime = Date.now();
     localStorage.setItem('lastCareTime', lastCareTime);
   }
+}
 
-  userStartAudio();
   let labels = ["sing", "sunlight", "water"];
   for (let i = 0; i < labels.length; i++) {
     let x = i * (width / 3) + width / 15;
