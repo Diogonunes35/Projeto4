@@ -259,13 +259,13 @@ function draw() {
     barraLargura = 500;
     barraAltura = 50;
     barraX = width / 2 - 250;
-    barraY = height - 80;
+    barraY = 60;
   } else {
     // Telemóvel
     barraLargura = 220;
     barraAltura = 30;
     barraX = width / 2 - barraLargura / 2;
-    barraY = height - 60;
+    barraY = 60;
   }
 
   fill(255);
