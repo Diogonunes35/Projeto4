@@ -509,9 +509,9 @@ function star(x, y, radius1, radius2, npoints) {
 function drawButtons() {
   let labels = ["Sing", "Sunlight", "Water"];
   for (let i = 0; i < labels.length; i++) {
-    let x = 50 + i * (width / 4);
-    let y = 50;
     let w = width / 5;
+    let x = i * (width / 3) + width / 15;
+    let y = height-80;
     let h = 40;
     fill(mode === labels[i].toLowerCase() ? '#aaa' : '#ddd');
     rect(x, y, w, h, 10);
