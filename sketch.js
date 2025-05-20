@@ -54,7 +54,7 @@ let isBadState = false;
 
 // Novas variáveis globais
 let isDeadState = false;
-let deadSince = null;
+let badSince = null; // era deadSince
 let showReviveButton = false;
 
 function preload() {
@@ -162,6 +162,38 @@ function setup() {
     lastCareTime = Date.now();
     localStorage.setItem('lastCareTime', lastCareTime);
   }
+
+  // Recupera o badSince do localStorage se existir
+  if (localStorage.getItem('badSince')) {
+    badSince = parseInt(localStorage.getItem('badSince'));
+  }
+
+  // --- CORREÇÃO: Atualiza o estado da planta conforme o tempo real passado ---
+  let now = Date.now();
+  if (!isBadState && !isDeadState && now - lastCareTime > 10 * 1000) {
+    isBadState = true;
+    // Se badSince não estava guardado, define agora como o momento em que ficou bad
+    if (!badSince) {
+      badSince = lastCareTime + 10 * 1000;
+      localStorage.setItem('badSince', badSince);
+    }
+    vetoresFases = window.vetoresFasesBad;
+    gerarPlanta();
+  }
+  if (isBadState && !isDeadState && badSince && now - badSince > 10 * 1000) {
+    isDeadState = true;
+    vetoresFases = window.vetoresFasesDead;
+    gerarPlanta();
+    showReviveButton = true;
+  }
+  // Se o utilizador ficou tanto tempo fora que já devia estar dead, força o estado dead
+  if (!isDeadState && badSince && now - badSince > 10 * 1000) {
+    isBadState = true;
+    isDeadState = true;
+    vetoresFases = window.vetoresFasesDead;
+    gerarPlanta();
+    showReviveButton = true;
+  }
 }
 
 function inicializarDados() {
@@ -232,11 +264,12 @@ function draw() {
     isBadState = true;
     vetoresFases = window.vetoresFasesBad;
     gerarPlanta();
-    deadSince = Date.now();
+    badSince = Date.now();
+    localStorage.setItem('badSince', badSince); // Salva badSince
   }
 
   // DEAD: 10 segundos após BAD
-  if (isBadState && !isDeadState && deadSince && Date.now() - deadSince > 10 * 1000) {
+  if (isBadState && !isDeadState && badSince && Date.now() - badSince > 10 * 1000) {
     isDeadState = true;
     vetoresFases = window.vetoresFasesDead;
     gerarPlanta();
@@ -255,8 +288,8 @@ function draw() {
         `Tempo até a planta ficar estragada: ${min}:${sec.toString().padStart(2, '0')}`
       );
     }
-  } else if (isBadState && !isDeadState && deadSince) {
-    let tempoRestante = 10 * 1000 - (Date.now() - deadSince);
+  } else if (isBadState && !isDeadState && badSince) {
+    let tempoRestante = 10 * 1000 - (Date.now() - badSince);
     if (tempoRestante > 0) {
       let segundos = Math.ceil(tempoRestante / 1000);
       let min = Math.floor(segundos / 60);
@@ -432,8 +465,8 @@ function mousePressed() {
 
     showReviveButton = false;
     isDeadState = false;
-    isBadState = false; // <- também deixa de estar bad
-    deadSince = null;
+    isBadState = false;
+    badSince = null;
     limparLocalStorage();
     inicializarDados();
     preload();
@@ -454,6 +487,7 @@ function mousePressed() {
     gerarPlanta();
     lastCareTime = Date.now();
     localStorage.setItem('lastCareTime', lastCareTime);
+    localStorage.removeItem('badSince'); // Limpa badSince
   }
 }
 
@@ -487,9 +521,9 @@ function keyPressed() {
     lastCareTime = Date.now();
     localStorage.setItem('lastCareTime', lastCareTime);
     if (isBadState) {
-      // Volta para os assets normais ao cuidar novamente, mas NÃO cresce
       isBadState = false;
-      deadSince = null;
+      badSince = null;
+      localStorage.removeItem('badSince');
       vetoresFases = [];
       for (let fase = 0; fase < maxFases; fase++) {
         let vetoresParaFase = [];
@@ -841,4 +875,7 @@ function capitalize(str) {
 // Atualiza o lastCareTime no localStorage quando o utilizador sai do site
 window.addEventListener('beforeunload', () => {
   localStorage.setItem('lastCareTime', lastCareTime);
+  if (badSince) {
+    localStorage.setItem('badSince', badSince);
+  }
 });
