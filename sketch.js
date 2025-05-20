@@ -338,8 +338,8 @@ function mousePressed() {
   userStartAudio();
   let labels = ["sing", "sunlight", "water"];
   for (let i = 0; i < labels.length; i++) {
-    let x = 50 + i * (width / 4);
-    let y = 50;
+    let x = i * (width / 3) + width / 15;
+    let y = height - 80;
     let w = width / 5;
     let h = 40;
     if (mouseX > x && mouseX < x + w && mouseY > y && mouseY < y + h) {
