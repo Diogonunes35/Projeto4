@@ -30,7 +30,7 @@ let displayWeather = null;
 //tarefas
 let mic, capture;
 let gamma = 0;
-let mode = "sing";
+let mode = "none";
 let progress = { sing: 0, sunlight: 0, water: 0 };
 let displayedProgress = { sing: 0, sunlight: 0, water: 0 };
 
@@ -56,6 +56,9 @@ let isBadState = false;
 let isDeadState = false;
 let badSince = null; // era deadSince
 let showReviveButton = false;
+
+//menus
+let menu = 0;
 
 function preload() {
   vetoresFases = [];
@@ -427,9 +430,27 @@ function draw() {
   text(`Fase: ${faseAtual + 1} de ${maxFases}`, width / 2, barraY + barraAltura / 2 + (windowWidth > 768 ? 10 : 6));
 
   //tarefas
-  drawButtons();
-  updateProgress();
-  drawProgressBar();
+  if (menu == 0){
+    drawButtons();
+  }
+  if(menu == 1){
+    updateProgress();
+    drawProgressBar();
+    fill(255,0,0);
+    square(20,20, 40);
+  }
+  if (menu == 2){
+    updateProgress();
+    drawProgressBar();
+    fill(255,0,0);
+    square(20,20, 40);
+  }
+  if (menu == 3){
+    updateProgress();
+    drawProgressBar();
+    fill(255,0,0);
+    square(20,20, 40);
+  }
 
   if (mode === "sing") {
     drawSingAnimation();
@@ -461,35 +482,35 @@ function mousePressed() {
   userStartAudio();
   // Se a planta estiver morta e o botão estiver visível, reseta tudo
   if (showReviveButton && isDeadState) {
-      if(mouseX > width / 2 - 110 && mouseX < width / 2 + 110 && mouseY > height / 2 - 30 && mouseY < height / 2 + 30) {
+    if(mouseX > width / 2 - 110 && mouseX < width / 2 + 110 && mouseY > height / 2 - 30 && mouseY < height / 2 + 30) {
 
-    showReviveButton = false;
-    isDeadState = false;
-    isBadState = false;
-    badSince = null;
-    limparLocalStorage();
-    inicializarDados();
-    preload();
-    vetoresFases = [];
-    for (let fase = 0; fase < maxFases; fase++) {
-      let vetoresParaFase = [];
-      for (let i = 0; i < 5; i++) {
-        let caminho = `assets/live/fase${fase}/${i}.svg`;
-        let img = loadImage(
-          caminho,
-          () => {},
-          () => {}
-        );
-        vetoresParaFase.push(img);
+      showReviveButton = false;
+      isDeadState = false;
+      isBadState = false;
+      badSince = null;
+      limparLocalStorage();
+      inicializarDados();
+      preload();
+      vetoresFases = [];
+      for (let fase = 0; fase < maxFases; fase++) {
+        let vetoresParaFase = [];
+        for (let i = 0; i < 5; i++) {
+          let caminho = `assets/live/fase${fase}/${i}.svg`;
+          let img = loadImage(
+            caminho,
+            () => {},
+            () => {}
+          );
+          vetoresParaFase.push(img);
+        }
+        vetoresFases.push(vetoresParaFase);
       }
-      vetoresFases.push(vetoresParaFase);
+      gerarPlanta();
+      lastCareTime = Date.now();
+      localStorage.setItem('lastCareTime', lastCareTime);
+      localStorage.removeItem('badSince'); // Limpa badSince
     }
-    gerarPlanta();
-    lastCareTime = Date.now();
-    localStorage.setItem('lastCareTime', lastCareTime);
-    localStorage.removeItem('badSince'); // Limpa badSince
   }
-}
 
   let labels = ["sing", "sunlight", "water"];
   for (let i = 0; i < labels.length; i++) {
@@ -497,10 +518,27 @@ function mousePressed() {
     let y = height - 80;
     let w = width / 5;
     let h = 40;
-    if (mouseX > x && mouseX < x + w && mouseY > y && mouseY < y + h) {
-      mode = labels[i];
-      completionMessage = "";
+    if(menu == 0){
+      if (mouseX > x && mouseX < x + w && mouseY > y && mouseY < y + h) {
+        mode = labels[i];
+        if (labels[i] === "sing") {
+          menu = 1;
+        }
+        if (labels[i] === "sunlight") {
+          menu = 2;
+        }
+        if (labels[i] === "water") {
+          menu = 3;
+        }
+        completionMessage = "";
+      }
     }
+  }
+
+  if (mouseX > 20 && mouseX < 60 && mouseY > 20 && mouseY < 60) {
+    menu = 0;
+    mode = "none";
+    completionMessage = "";
   }
 }
 
@@ -788,7 +826,12 @@ function drawProgressBar() {
   let barWidth = width * 0.8;
   let barHeight = 30;
   let x = width * 0.1;
-  let y = height / 2;
+  let y;
+  if (windowWidth <= 768) {
+    y = height / 4;
+  } else {
+    y = 50;
+  }
 
   fill(220);
   rect(x, y, barWidth, barHeight, 10);
@@ -798,7 +841,7 @@ function drawProgressBar() {
   rect(x, y, map(p, 0, 100, 0, barWidth), barHeight, 10);
 
   fill(0);
-  text(`${capitalize(mode)}: ${floor(p)}%`, width / 2, y - 20);
+  text(`${capitalize(mode)}: ${floor(p)}%`, width / 2, y+15);
 }
 
 function drawSingAnimation() {
@@ -878,4 +921,4 @@ window.addEventListener('beforeunload', () => {
   if (badSince) {
     localStorage.setItem('badSince', badSince);
   }
-});
+}); 
