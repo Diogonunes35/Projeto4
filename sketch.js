@@ -295,6 +295,13 @@ function limparLocalStorage() {
   console.log("Local storage limpo!");
 }
 
+function keyPressed() {
+  if (key === 'r' || key === 'R') {
+    limparLocalStorage();
+    window.location.reload()
+  }
+}
+
 //tempo
 // ---------- CLOUDS ----------
 function generateClouds() {
