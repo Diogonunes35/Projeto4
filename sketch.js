@@ -49,7 +49,16 @@ let maxNoteSize = 40;
 let noteAlphaDecrease = 3;
 let noteEmojis = ["🎵", "♫", "♪"];
 
+let lastCareTime = Date.now();
+let isBadState = false;
+
+// Novas variáveis globais
+let isDeadState = false;
+let deadSince = null;
+let showReviveButton = false;
+
 function preload() {
+  vetoresFases = [];
   for (let fase = 0; fase < maxFases; fase++) {
     let vetoresParaFase = [];
     for (let i = 0; i < 5; i++) {
@@ -63,7 +72,28 @@ function preload() {
     }
     vetoresFases.push(vetoresParaFase);
   }
-
+  // Carrega também os assets "bad" (apenas 1 vetor por fase)
+  window.vetoresFasesBad = [];
+  for (let fase = 0; fase < maxFases; fase++) {
+    let caminhoBad = `assets/bad/fase${fase}.svg`;
+    let imgBad = loadImage(
+      caminhoBad,
+      () => console.log(`Imagem BAD carregada: ${caminhoBad}`),
+      () => console.error(`Erro ao carregar BAD: ${caminhoBad}`)
+    );
+    window.vetoresFasesBad.push([imgBad]);
+  }
+  // Carrega também os assets "dead" (apenas 1 vetor por fase)
+  window.vetoresFasesDead = [];
+  for (let fase = 0; fase < maxFases; fase++) {
+    let caminhoDead = `assets/dead/fase${fase}.svg`;
+    let imgDead = loadImage(
+      caminhoDead,
+      () => console.log(`Imagem DEAD carregada: ${caminhoDead}`),
+      () => console.error(`Erro ao carregar DEAD: ${caminhoDead}`)
+    );
+    window.vetoresFasesDead.push([imgDead]);
+  }
   console.log("Imagens carregadas:", vetoresFases);
 }
 
@@ -124,6 +154,14 @@ function setup() {
   });
 
   textAlign(CENTER, CENTER);
+
+  // Recupera o lastCareTime do localStorage se existir
+  if (localStorage.getItem('lastCareTime')) {
+    lastCareTime = parseInt(localStorage.getItem('lastCareTime'));
+  } else {
+    lastCareTime = Date.now();
+    localStorage.setItem('lastCareTime', lastCareTime);
+  }
 }
 
 function inicializarDados() {
@@ -146,7 +184,8 @@ function gerarPlanta() {
 
   for (let i = 0; i <= faseAtual; i++) {
     if (vetoresFases[i]) {
-      let vetorIndex = int(random(0, 5));
+      // Se for estado ruim, só existe 1 vetor por fase
+      let vetorIndex = (vetoresFases[i].length === 1) ? 0 : int(random(0, 5));
       let img = vetoresFases[i][vetorIndex];
 
       if (img && img.width > 0 && img.height > 0) {
@@ -188,6 +227,46 @@ function gotWeatherData(data) {
 }
 
 function draw() {
+  // BAD: 10 segundos sem cuidar
+  if (!isBadState && !isDeadState && Date.now() - lastCareTime > 10 * 1000) {
+    isBadState = true;
+    vetoresFases = window.vetoresFasesBad;
+    gerarPlanta();
+    deadSince = Date.now();
+  }
+
+  // DEAD: 10 segundos após BAD
+  if (isBadState && !isDeadState && deadSince && Date.now() - deadSince > 10 * 1000) {
+    isDeadState = true;
+    vetoresFases = window.vetoresFasesDead;
+    gerarPlanta();
+    showReviveButton = true;
+  }
+
+  // Mostra tempo restante para BAD e DEAD na consola
+  if (!isBadState && !isDeadState) {
+    let tempoRestante = 10 * 1000 - (Date.now() - lastCareTime);
+    if (tempoRestante > 0) {
+      let segundos = Math.ceil(tempoRestante / 1000);
+      let min = Math.floor(segundos / 60);
+      let sec = segundos % 60;
+      // Mostra na consola
+      console.log(
+        `Tempo até a planta ficar estragada: ${min}:${sec.toString().padStart(2, '0')}`
+      );
+    }
+  } else if (isBadState && !isDeadState && deadSince) {
+    let tempoRestante = 10 * 1000 - (Date.now() - deadSince);
+    if (tempoRestante > 0) {
+      let segundos = Math.ceil(tempoRestante / 1000);
+      let min = Math.floor(segundos / 60);
+      let sec = segundos % 60;
+      console.log(
+        `Tempo até a planta morrer: ${min}:${sec.toString().padStart(2, '0')}`
+      );
+    }
+  }
+
   //tempo
   if (!displayWeather && weatherData) {
     let main = weatherData.weather[0].main.toLowerCase();
@@ -332,9 +411,48 @@ function draw() {
     textSize(24);
     text(completionMessage, width / 2, height / 2 + 100);
   }
+
+  // Botão para reviver planta se estiver morta
+  if (showReviveButton && isDeadState) {
+    fill(255, 0, 0);
+    rectMode(CENTER);
+    rect(width / 2, height / 2, 220, 60, 15);
+    fill(255);
+    textSize(22);
+    textAlign(CENTER, CENTER);
+    text("Clique para recomeçar a planta", width / 2, height / 2);
+  }
 }
 
 function mousePressed() {
+  // Se a planta estiver morta e o botão estiver visível, reseta tudo
+  if (showReviveButton && isDeadState) {
+    showReviveButton = false;
+    isDeadState = false;
+    isBadState = false; // <- também deixa de estar bad
+    deadSince = null;
+    limparLocalStorage();
+    inicializarDados();
+    preload();
+    vetoresFases = [];
+    for (let fase = 0; fase < maxFases; fase++) {
+      let vetoresParaFase = [];
+      for (let i = 0; i < 5; i++) {
+        let caminho = `assets/live/fase${fase}/${i}.svg`;
+        let img = loadImage(
+          caminho,
+          () => {},
+          () => {}
+        );
+        vetoresParaFase.push(img);
+      }
+      vetoresFases.push(vetoresParaFase);
+    }
+    gerarPlanta();
+    lastCareTime = Date.now();
+    localStorage.setItem('lastCareTime', lastCareTime);
+  }
+
   userStartAudio();
   let labels = ["sing", "sunlight", "water"];
   for (let i = 0; i < labels.length; i++) {
@@ -361,15 +479,40 @@ function keyPressed() {
   }
 
   if (key === 's' || key === 'S') {
-      if (faseAtual < maxFases - 1) {
-    faseAtual++;
-    console.log(`Fase atual: ${faseAtual}`); // Verifica se está incrementando
-    gerarPlanta();
-    localStorage.setItem('faseAtual', faseAtual);
-  } else {
-    console.log("Você já atingiu o número máximo de fases.");
+    if (isDeadState) return; // Não faz nada se estiver morta
+
+    lastCareTime = Date.now();
+    localStorage.setItem('lastCareTime', lastCareTime);
+    if (isBadState) {
+      // Volta para os assets normais ao cuidar novamente, mas NÃO cresce
+      isBadState = false;
+      deadSince = null;
+      vetoresFases = [];
+      for (let fase = 0; fase < maxFases; fase++) {
+        let vetoresParaFase = [];
+        for (let i = 0; i < 5; i++) {
+          let caminho = `assets/live/fase${fase}/${i}.svg`;
+          let img = loadImage(
+            caminho,
+            () => {},
+            () => {}
+          );
+          vetoresParaFase.push(img);
+        }
+        vetoresFases.push(vetoresParaFase);
+      }
+      gerarPlanta();
+      return;
+    }
+    if (faseAtual < maxFases - 1) {
+      faseAtual++;
+      console.log(`Fase atual: ${faseAtual}`); // Verifica se está incrementando
+      gerarPlanta();
+      localStorage.setItem('faseAtual', faseAtual);
+    } else {
+      console.log("Você já atingiu o número máximo de fases.");
+    }
   }
-}
 }
 
 //tempo
@@ -691,3 +834,8 @@ function drawWaterAnimation() {
 function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
+
+// Atualiza o lastCareTime no localStorage quando o utilizador sai do site
+window.addEventListener('beforeunload', () => {
+  localStorage.setItem('lastCareTime', lastCareTime);
+});
