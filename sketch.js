@@ -76,7 +76,7 @@ function setup() {
   gerarPlanta();
 
   //tempo
-   textFont('Arial');
+  textFont('Arial');
 
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(gotLocation, locationError);
@@ -309,7 +309,7 @@ function generateClouds() {
 }
 
 function updateClouds() {
-  let windX = map(windSpeed, 0, 20, 0, 0.5);
+  let windX = map(windSpeed, 0, 10, 0, 1);
   for (let c of clouds) {
     c.x += windX;
     if (c.x > width + 100) c.x = -100;
