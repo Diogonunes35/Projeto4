@@ -1,6 +1,7 @@
 let seed;
 let faseAtual = 0;
 let maxFases = 6; // Agora são 6 fases: 0 (vazia) + 5 normais
+let vasoImg;
 
 //variaveis tempo
 let temperature = 0;
@@ -136,6 +137,8 @@ function preload() {
     }
   }
   console.log("Imagens carregadas:", vetoresFases);
+
+  vasoImg = loadImage("assets/pots/vaso1.svg");
 }
 
 function setup() {
@@ -238,22 +241,23 @@ function setup() {
 function inicializarDados() {
   seed = Math.floor(random(100000, 999999)); // Gera uma seed aleatória entre 100000 e 999999
   faseAtual = 0;
-  maxFases = 5;
+  maxFases = 6; // <-- Corrige para 6 fases (0 a 5)
   planta = [];
 
   localStorage.setItem('plantaSeed', seed);
   localStorage.setItem('faseAtual', faseAtual);
-  localStorage.setItem('maxFases', maxFases);
+  localStorage.setItem('maxFases', maxFases); // <-- Corrige para 6 fases
   localStorage.setItem('planta', JSON.stringify([])); // Salva um vetor vazio
 }
 
+// --- 1. Corrigir gerarPlanta para mostrar todas as partes até à faseAtual (incluindo a última fase) ---
 function gerarPlanta() {
   randomSeed(int(seed));
 
   planta = [];
   let plantaIndices = [];
 
-  // Fase 0: não adiciona nada à planta
+  // Corrigido: mostra todas as partes até à faseAtual (inclusive a última fase)
   for (let i = 0; i <= faseAtual; i++) {
     if (vetoresFases[i] && vetoresFases[i].length > 0) {
       let vetorIndex = (vetoresFases[i].length === 1) ? 0 : int(random(0, 5));
@@ -274,7 +278,6 @@ function gerarPlanta() {
   localStorage.setItem('planta', JSON.stringify(plantaIndices));
 }
 
-//tempo
 function gotLocation(position) {
   let lat = position.coords.latitude;
   let lon = position.coords.longitude;
@@ -415,25 +418,40 @@ function draw() {
   }
 
   //planta
-  let baseX = width / 2;
-  let baseY = height - 200; // Ponto inicial da base
+let baseX = width / 2;
+// Se for telemóvel, coloca a planta ligeiramente mais acima (por exemplo, 30 em vez de 60)
+let baseYOffset = windowWidth > 768 ? 0 : 30;
+let baseY = height - 200 + baseYOffset; // Ponto inicial da base
 
-  // Ajusta o tamanho da planta com base no tipo de dispositivo
-  let larguraDesejada = windowWidth > 768 ? 120 : 90; // Maior no PC, menor no telemóvel
-  let alturaDesejada = windowWidth > 768 ? 80 : 60;   // Maior no PC, menor no telemóvel
-  let distanciaEntrePartes = alturaDesejada - 10;    // Distância entre os componentes
+// Ajusta o tamanho da planta com base no tipo de dispositivo
+let larguraDesejada = windowWidth > 768 ? 120 : 90; // Maior no PC, menor no telemóvel
+let alturaDesejada = windowWidth > 768 ? 80 : 60;   // Maior no PC, menor no telemóvel
+let distanciaEntrePartes = alturaDesejada - 10;    // Distância entre os componentes
 
+imageMode(CENTER);
+
+// Desenhar o vaso SVG debaixo da planta
+if (vasoImg && vasoImg.width > 0 && vasoImg.height > 0) {
+  let vasoLargura = larguraDesejada * 1.5;
+  let vasoAltura = alturaDesejada * 1.1;
+  let vasoX = baseX;
+  // Se for telemóvel, coloca o vaso mais abaixo (-15), senão (-20)
+  let vasoY = baseY + vasoAltura - (windowWidth > 768 ? 20 : 15);
   imageMode(CENTER);
+  image(vasoImg, vasoX, vasoY, vasoLargura, vasoAltura);
+}
 
-  for (let i = 0; i < planta.length; i++) {
-    if (planta[i] && planta[i].width > 0 && planta[i].height > 0) { // Verifica se a imagem foi carregada
-      let posX = baseX;
-      let posY = baseY - (i * distanciaEntrePartes);
-      image(planta[i], posX, posY, larguraDesejada, alturaDesejada);
-    } else {
-      console.warn(`Imagem da planta na posição ${i} não foi carregada ou está vazia.`);
-    }
+// Desenhar a planta
+for (let i = 0; i < planta.length; i++) {
+  if (planta[i] && planta[i].width > 0 && planta[i].height > 0) { // Verifica se a imagem foi carregada
+    let posX = baseX;
+    let posY = baseY - (i * distanciaEntrePartes);
+    image(planta[i], posX, posY, larguraDesejada, alturaDesejada);
+  } else {
+    console.warn(`Imagem da planta na posição ${i} não foi carregada ou está vazia.`);
   }
+}
+
 
   //tarefas
   textSize(windowWidth > 768 ? 24 : 16);
@@ -463,12 +481,23 @@ function draw() {
   fill(255);
   rect(barraX, barraY, barraLargura, barraAltura, 10);
   fill(0, 255, 0);
-  let progression = map(faseAtual, 0, maxFases - 1, 0, barraLargura);
+
+  // A barra vai de 0 (fase 0) até maxFases-2 (fase 4), pois maxFases=6 (0 a 5), mas só mostra até 5/5
+  let maxFaseVisivel = maxFases - 1; // Agora mostra até fase 5 de 5
+  let progression = map(faseAtual, 0, maxFaseVisivel, 0, barraLargura);
+  if (faseAtual >= maxFaseVisivel) {
+    progression = barraLargura;
+  }
   rect(barraX, barraY, progression, barraAltura, 10);
+
   fill(0);
   textAlign(CENTER);
   textSize(windowWidth > 768 ? 24 : 16);
-  text(`Fase: ${faseAtual + 1} de ${maxFases}`, width / 2, barraY + barraAltura/3  + (windowWidth > 768 ? 10 : 6));
+  if (faseAtual >= maxFaseVisivel) {
+    text(`Máximo`, width / 2, barraY + barraAltura / 3 + (windowWidth > 768 ? 10 : 6));
+  } else {
+    text(`Fase: ${faseAtual} de ${maxFaseVisivel}`, width / 2, barraY + barraAltura / 3 + (windowWidth > 768 ? 10 : 6));
+  }
   }
   }
 
@@ -550,33 +579,50 @@ function mousePressed() {
   userStartAudio();
   // Se a planta estiver morta e o botão estiver visível, reseta tudo
   if (showReviveButton && isDeadState) {
-    if(mouseX > width / 2 - 110 && mouseX < width / 2 + 110 && mouseY > height / 2 - 30 && mouseY < height / 2 + 30) {
-
+    if (
+      mouseX > width / 2 - 110 &&
+      mouseX < width / 2 + 110 &&
+      mouseY > height / 2 - 30 &&
+      mouseY < height / 2 + 30
+    ) {
       showReviveButton = false;
       isDeadState = false;
       isBadState = false;
       badSince = null;
       limparLocalStorage();
       inicializarDados();
-      preload();
+      faseAtual = 0;
+      localStorage.setItem('faseAtual', faseAtual);
+
+      // Limpa a planta e não gera nada
+      planta = [];
+      localStorage.setItem('planta', JSON.stringify([]));
+
+      // Garante que vetoresFases está correto (fase 0 vazia)
       vetoresFases = [];
       for (let fase = 0; fase < maxFases; fase++) {
         let vetoresParaFase = [];
-        for (let i = 0; i < 5; i++) {
-          let caminho = `assets/live/fase${fase}/${i}.svg`;
-          let img = loadImage(
-            caminho,
-            () => {},
-            () => {}
-          );
-          vetoresParaFase.push(img);
+        // Fase 0 deve ser SEM IMAGEM
+        if (fase !== 0) {
+          for (let i = 0; i < 5; i++) {
+            let caminho = `assets/live/fase${fase}/${i}.svg`;
+            let img = loadImage(
+              caminho,
+              () => {},
+              () => {}
+            );
+            vetoresParaFase.push(img);
+          }
         }
         vetoresFases.push(vetoresParaFase);
       }
-      gerarPlanta();
+      // NÃO chama gerarPlanta() aqui!
       lastCareTime = Date.now();
       localStorage.setItem('lastCareTime', lastCareTime);
-      localStorage.removeItem('badSince'); // Limpa badSince
+      localStorage.removeItem('badSince');
+
+      // Faz refresh à página para garantir reset total
+      window.location.reload();
     }
   }
 
