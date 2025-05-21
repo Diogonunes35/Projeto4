@@ -54,11 +54,15 @@ let isBadState = false;
 
 // Novas variáveis globais
 let isDeadState = false;
-let badSince = null; // era deadSince
+let badSince = null; 
 let showReviveButton = false;
 
 //menus
 let menu = 0;
+
+// Variáveis globais para controlar o tempo de espera entre estados (em milissegundos)
+const TEMPO_NORMAL_PARA_BAD = 15 * 1000; // 15 segundos do normal para bad
+const TEMPO_BAD_PARA_DEAD = 30 * 1000;   // 15 segundos do bad para dead
 
 function preload() {
   vetoresFases = [];
@@ -75,6 +79,8 @@ function preload() {
     }
     vetoresFases.push(vetoresParaFase);
   }
+  window.vetoresFases = vetoresFases; // <-- ADICIONA ESTA LINHA
+
   // Carrega também os assets "bad" (apenas 1 vetor por fase)
   window.vetoresFasesBad = [];
   for (let fase = 0; fase < maxFases; fase++) {
@@ -173,24 +179,22 @@ function setup() {
 
   // --- CORREÇÃO: Atualiza o estado da planta conforme o tempo real passado ---
   let now = Date.now();
-  if (!isBadState && !isDeadState && now - lastCareTime > 10 * 60 * 1000) {
+  if (!isBadState && !isDeadState && now - lastCareTime > TEMPO_NORMAL_PARA_BAD) {
     isBadState = true;
-    // Se badSince não estava guardado, define agora como o momento em que ficou bad
     if (!badSince) {
-      badSince = lastCareTime + 10 * 60 * 1000;
+      badSince = lastCareTime + TEMPO_NORMAL_PARA_BAD;
       localStorage.setItem('badSince', badSince);
     }
     vetoresFases = window.vetoresFasesBad;
     gerarPlanta();
   }
-  if (isBadState && !isDeadState && badSince && now - badSince > 10 * 60 * 1000) {
+  if (isBadState && !isDeadState && badSince && now - badSince > TEMPO_BAD_PARA_DEAD) {
     isDeadState = true;
     vetoresFases = window.vetoresFasesDead;
     gerarPlanta();
     showReviveButton = true;
   }
-  // Se o utilizador ficou tanto tempo fora que já devia estar dead, força o estado dead
-  if (!isDeadState && badSince && now - badSince > 10 * 60 * 1000) {
+  if (!isDeadState && badSince && now - badSince > TEMPO_BAD_PARA_DEAD) {
     isBadState = true;
     isDeadState = true;
     vetoresFases = window.vetoresFasesDead;
@@ -262,17 +266,17 @@ function gotWeatherData(data) {
 }
 
 function draw() {
-  // BAD: 10 segundos sem cuidar
-  if (!isBadState && !isDeadState && Date.now() - lastCareTime > 10 * 60 * 1000) {
+  // BAD: tempo sem cuidar
+  if (!isBadState && !isDeadState && Date.now() - lastCareTime > TEMPO_NORMAL_PARA_BAD) {
     isBadState = true;
     vetoresFases = window.vetoresFasesBad;
     gerarPlanta();
     badSince = Date.now();
-    localStorage.setItem('badSince', badSince); // Salva badSince
+    localStorage.setItem('badSince', badSince);
   }
 
-  // DEAD: 10 minutos após BAD
-  if (isBadState && !isDeadState && badSince && Date.now() - badSince > 10 * 60 * 1000) {
+  // DEAD: tempo após BAD
+  if (isBadState && !isDeadState && badSince && Date.now() - badSince > TEMPO_BAD_PARA_DEAD) {
     isDeadState = true;
     vetoresFases = window.vetoresFasesDead;
     gerarPlanta();
@@ -281,7 +285,7 @@ function draw() {
 
   // Mostra tempo restante para BAD e DEAD na consola
   if (!isBadState && !isDeadState) {
-    let tempoRestante = 10 * 60 * 1000 - (Date.now() - lastCareTime);
+    let tempoRestante = TEMPO_NORMAL_PARA_BAD - (Date.now() - lastCareTime);
     if (tempoRestante > 0) {
       let segundos = Math.ceil(tempoRestante / 1000);
       let min = Math.floor(segundos / 60);
@@ -292,7 +296,7 @@ function draw() {
       );
     }
   } else if (isBadState && !isDeadState && badSince) {
-    let tempoRestante = 10 * 60 * 1000 - (Date.now() - badSince);
+    let tempoRestante = TEMPO_BAD_PARA_DEAD - (Date.now() - badSince);
     if (tempoRestante > 0) {
       let segundos = Math.ceil(tempoRestante / 1000);
       let min = Math.floor(segundos / 60);
@@ -403,6 +407,7 @@ function draw() {
   //tarefas
   textSize(windowWidth > 768 ? 24 : 16);
   if (menu == 0){
+    if(!isDeadState){
     drawButtons();
 
     // Desenha barra de progresso
@@ -433,8 +438,9 @@ function draw() {
   textAlign(CENTER);
   textSize(windowWidth > 768 ? 24 : 16);
   text(`Fase: ${faseAtual + 1} de ${maxFases}`, width / 2, barraY + barraAltura/3  + (windowWidth > 768 ? 10 : 6));
-
   }
+  }
+
   if(menu == 1){
     updateProgress();
     drawProgressBar();
@@ -503,7 +509,8 @@ function draw() {
     fill(255);
     textSize(22);
     textAlign(CENTER, CENTER);
-    text("Clique para recomeçar a planta", width / 2, height / 2);
+    text("A planta morreu", width / 2, height/2 -10);
+    text("Recomeçar", width / 2, height/2 +15);
   }
 }
 
@@ -547,7 +554,7 @@ function mousePressed() {
     let y = height - 80;
     let w = width / 5;
     let h = 40;
-    if(menu == 0){
+    if(menu == 0 && !isDeadState){
       if (mouseX > x && mouseX < x + w && mouseY > y && mouseY < y + h) {
         mode = labels[i];
         if (labels[i] === "sing") {
@@ -770,6 +777,11 @@ function drawButtons() {
 function updateProgress() {
   let activePerformed = false;
 
+  // Impede progresso se a planta estiver morta
+  if (isDeadState) {
+    return;
+  }
+
   if (progress[mode] < 100) {
     if (mode === "sing") {
       let level = mic.getLevel();
@@ -816,7 +828,6 @@ function updateProgress() {
       let isPC = !('ontouchstart' in window || navigator.maxTouchPoints > 0);
       let waterActive = false;
       if (isPC) {
-        // Considera "regar" se o botão esquerdo do rato estiver pressionado
         if (mouseIsPressed) {
           waterActive = true;
         }
@@ -859,11 +870,36 @@ function updateProgress() {
     }
   }
 
-  // NOVO: Sobe de fase automaticamente quando todas as tarefas estão completas
+  // NOVO: Se todas as tarefas forem concluídas enquanto está bad, volta ao normal, mas não sobe de fase
   if (
-    progress.sing >= 100 &&
-    progress.sunlight >= 100 &&
-    progress.water >= 100 &&
+    isBadState &&
+    !isDeadState &&
+    progress.sing >= 90 &&
+    progress.sunlight >= 90 &&
+    progress.water >= 90
+  ) {
+    isBadState = false;
+    badSince = null;
+    localStorage.removeItem('badSince');
+    vetoresFases = window.vetoresFases; // volta ao normal
+    gerarPlanta();
+    completionMessage = "Planta recuperada! Continue a cuidar para subir de fase.";
+    // NÃO sobe de fase, apenas recupera
+    menu = 0;
+    mode = "none";
+    lastCareTime = Date.now();
+    localStorage.setItem('lastCareTime', lastCareTime);
+    showReviveButton = false;
+    return; // Sai para não mostrar mensagem de subir de fase
+  }
+
+  // Sobe de fase apenas se não estiver bad ou dead e todas as tarefas >= 90%
+  if (
+    !isBadState &&
+    !isDeadState &&
+    progress.sing >= 90 &&
+    progress.sunlight >= 90 &&
+    progress.water >= 90 &&
     completionMessage === ""
   ) {
     completionMessage = "Parabéns! Todas as tarefas completas! Planta subiu de fase!";
@@ -879,7 +915,14 @@ function updateProgress() {
       completionMessage = "";
       menu = 0;
       mode = "none";
-    }, 1500); // Espera 1.5s para mostrar mensagem
+      lastCareTime = Date.now();
+      localStorage.setItem('lastCareTime', lastCareTime);
+      badSince = null;
+      localStorage.removeItem('badSince');
+      isBadState = false;
+      isDeadState = false;
+      showReviveButton = false;
+    }, 1500);
   }
 }
 
