@@ -35,7 +35,8 @@ let progress = { sing: 0, sunlight: 0, water: 0 };
 let displayedProgress = { sing: 0, sunlight: 0, water: 0 };
 
 let decayRate = 0.05;
-let progressRate = 0.5;
+// Torna as tarefas mais lentas de concluir (valor menor = mais lento)
+let progressRate = 0.1; // Valor anterior era 0.5
 let completionMessage = "";
 
 let musicalNotes = [];
@@ -61,8 +62,30 @@ let showReviveButton = false;
 let menu = 0;
 
 // Variáveis globais para controlar o tempo de espera entre estados (em milissegundos)
-const TEMPO_NORMAL_PARA_BAD = 15 * 1000; // 15 segundos do normal para bad
-const TEMPO_BAD_PARA_DEAD = 30 * 1000;   // 15 segundos do bad para dead
+const TEMPO_NORMAL_PARA_BAD = 1 * 60 * 1000; // 1 minuto do normal para bad
+const TEMPO_BAD_PARA_DEAD = 30 * 1000;       // 30 segundos do bad para dead
+
+// NOVAS VARIÁVEIS PARA CONTROLO DE TAREFAS DIÁRIAS
+let lastTaskTime = {
+  sing: Date.now(),
+  sunlight: Date.now(),
+  water: Date.now()
+};
+const TASK_RESET_INTERVAL = 30 * 1000; // 30 segundos em ms
+
+// Carregar do localStorage se existir
+if (localStorage.getItem('lastTaskTime')) {
+  try {
+    lastTaskTime = JSON.parse(localStorage.getItem('lastTaskTime'));
+  } catch (e) {
+    // Se der erro, reinicia
+    lastTaskTime = {
+      sing: Date.now(),
+      sunlight: Date.now(),
+      water: Date.now()
+    };
+  }
+}
 
 function preload() {
   vetoresFases = [];
@@ -512,6 +535,7 @@ function draw() {
     text("A planta morreu", width / 2, height/2 -10);
     text("Recomeçar", width / 2, height/2 +15);
   }
+  
 }
 
 function mousePressed() {
@@ -585,8 +609,39 @@ function limparLocalStorage() {
 
 function keyPressed() {
   if (key === 'r' || key === 'R') {
+    // Limpa localStorage
     limparLocalStorage();
-    window.location.reload()
+
+    // Reseta variáveis principais
+    lastCareTime = Date.now();
+    badSince = null;
+    isBadState = false;
+    isDeadState = false;
+    showReviveButton = false;
+    menu = 0;
+    mode = "none";
+    completionMessage = "";
+
+    // Reseta progresso das tarefas
+    progress = { sing: 0, sunlight: 0, water: 0 };
+    displayedProgress = { sing: 0, sunlight: 0, water: 0 };
+
+    // Reseta tempos das tarefas
+    lastTaskTime = {
+      sing: Date.now(),
+      sunlight: Date.now(),
+      water: Date.now()
+    };
+    localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
+    localStorage.setItem('lastCareTime', lastCareTime);
+
+    // Recarrega/reinicializa planta e dados
+    inicializarDados();
+    preload();
+    gerarPlanta();
+
+    // Opcional: recarrega a página para garantir tudo limpo
+    window.location.reload();
   }
 
   if (key === 's' || key === 'S') {
@@ -782,13 +837,24 @@ function updateProgress() {
     return;
   }
 
+  // Atualiza percentagem de cada tarefa com base no tempo desde a última realização
+  let now = Date.now();
+  for (let key in progress) {
+    let elapsed = now - (lastTaskTime[key] || now);
+    // Decresce linearmente ao longo de 24h até chegar a 0
+    let percent = 100 - (elapsed / TASK_RESET_INTERVAL) * 100;
+    progress[key] = constrain(percent, 0, 100);
+  }
+
+  // Só atualiza a tarefa ativa
   if (progress[mode] < 100) {
     if (mode === "sing") {
       let level = mic.getLevel();
       if (level > 0.01) {
-        progress.sing += progressRate;
+        progress.sing = 100;
+        lastTaskTime.sing = now;
+        localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
         activePerformed = true;
-
         if (frameCount % 5 === 0) {
           musicalNotes.push({
             x: random(width),
@@ -810,9 +876,10 @@ function updateProgress() {
       }
       avg /= (capture.pixels.length / 4);
       if (avg > 100) {
-        progress.sunlight += progressRate;
+        progress.sunlight = 100;
+        lastTaskTime.sunlight = now;
+        localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
         activePerformed = true;
-
         if (frameCount % 5 === 0) {
           sunParticles.push({
             x: random(width),
@@ -824,7 +891,6 @@ function updateProgress() {
         }
       }
     } else if (mode === "water") {
-      // Se for PC (sem touch), usa o rato; se for mobile, usa gamma
       let isPC = !('ontouchstart' in window || navigator.maxTouchPoints > 0);
       let waterActive = false;
       if (isPC) {
@@ -837,9 +903,10 @@ function updateProgress() {
         }
       }
       if (waterActive) {
-        progress.water += progressRate;
+        progress.water = 100;
+        lastTaskTime.water = now;
+        localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
         activePerformed = true;
-
         if (frameCount % 5 === 0) {
           waterDroplets.push({
             x: random(width),
@@ -854,21 +921,29 @@ function updateProgress() {
     }
   }
 
-  for (let key in progress) {
-    if (progress[key] < 100) {
-      if (key !== mode || !activePerformed) {
-        progress[key] = max(0, progress[key] - decayRate);
-      }
-    }
-    if (progress[key] > 100) progress[key] = 100;
-  }
-
+  // Atualiza barra visual suavemente
   for (let key in displayedProgress) {
     displayedProgress[key] = lerp(displayedProgress[key], progress[key], 0.1);
     if (abs(displayedProgress[key] - 100) < 0.5 && progress[key] >= 100) {
       displayedProgress[key] = 100;
     }
   }
+
+  // Só reseta o tempo se TODAS as tarefas estiverem >= 90%
+  if (
+    !isBadState &&
+    !isDeadState &&
+    progress.sing >= 90 &&
+    progress.sunlight >= 90 &&
+    progress.water >= 90
+  ) {
+    lastCareTime = Date.now();
+    localStorage.setItem('lastCareTime', lastCareTime);
+  }
+
+  // NOVO: Só pode crescer se já passaram 24h desde o último crescimento
+  let lastGrowthTime = parseInt(localStorage.getItem('lastGrowthTime')) || 0;
+  let canGrow = (Date.now() - lastGrowthTime) > TASK_RESET_INTERVAL;
 
   // NOVO: Se todas as tarefas forem concluídas enquanto está bad, volta ao normal, mas não sobe de fase
   if (
@@ -884,25 +959,32 @@ function updateProgress() {
     vetoresFases = window.vetoresFases; // volta ao normal
     gerarPlanta();
     completionMessage = "Planta recuperada! Continue a cuidar para subir de fase.";
-    // NÃO sobe de fase, apenas recupera
     menu = 0;
     mode = "none";
     lastCareTime = Date.now();
     localStorage.setItem('lastCareTime', lastCareTime);
     showReviveButton = false;
-    return; // Sai para não mostrar mensagem de subir de fase
+
+    // Adicione esta linha para limpar a mensagem após 2 segundos
+    setTimeout(() => {
+      completionMessage = "";
+    }, 2000);
+
+    return;
   }
 
-  // Sobe de fase apenas se não estiver bad ou dead e todas as tarefas >= 90%
+  // Sobe de fase apenas se não estiver bad ou dead, todas as tarefas >= 90% e já passou 24h desde o último crescimento
   if (
     !isBadState &&
     !isDeadState &&
     progress.sing >= 90 &&
     progress.sunlight >= 90 &&
     progress.water >= 90 &&
+    canGrow &&
     completionMessage === ""
   ) {
     completionMessage = "Parabéns! Todas as tarefas completas! Planta subiu de fase!";
+    localStorage.setItem('lastGrowthTime', Date.now());
     setTimeout(() => {
       if (faseAtual < maxFases - 1) {
         faseAtual++;
@@ -922,6 +1004,13 @@ function updateProgress() {
       isBadState = false;
       isDeadState = false;
       showReviveButton = false;
+      // Reinicia os tempos das tarefas para o novo ciclo
+      lastTaskTime = {
+        sing: Date.now(),
+        sunlight: Date.now(),
+        water: Date.now()
+      };
+      localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
     }, 1500);
   }
 }
