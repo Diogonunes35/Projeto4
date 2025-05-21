@@ -542,20 +542,62 @@ for (let i = 0; i < planta.length; i++) {
   if(menu == 1){
     updateProgress();
     drawProgressBar();
-    fill(255,0,0);
-    square(20,20, 40);
+
+    fill(0);
+    rectMode(CENTER);
+    push();
+    translate(40, 40);
+    rotate(PI / 4);
+    rect(0, 0, 50, 7);
+    pop();
+    rectMode(CORNER);
+
+    push();
+    translate(20, 55);
+    rotate(-PI / 4);
+    rect(0, 0, 50, 7);
+    pop();
+    rectMode(CORNER);
   }
   if (menu == 2){
     updateProgress();
     drawProgressBar();
-    fill(255,0,0);
-    square(20,20, 40);
+  
+    fill(0);
+    rectMode(CENTER);
+    push();
+    translate(40, 40);
+    rotate(PI / 4);
+    rect(0, 0, 50, 7);
+    pop();
+    rectMode(CORNER);
+
+    push();
+    translate(20, 55);
+    rotate(-PI / 4);
+    rect(0, 0, 50, 7);
+    pop();
+    rectMode(CORNER);
   }
   if (menu == 3){
     updateProgress();
     drawProgressBar();
-    fill(255,0,0);
-    square(20,20, 40);
+ 
+    fill(0);
+    rectMode(CENTER);
+    push();
+    translate(40, 40);
+    rotate(PI / 4);
+    rect(0, 0, 50, 7);
+    pop();
+    rectMode(CORNER);
+
+    push();
+    translate(20, 55);
+    rotate(-PI / 4);
+    rect(0, 0, 50, 7);
+    pop();
+    rectMode(CORNER);
   }
 
   if (mode === "sing") {
@@ -1059,7 +1101,7 @@ function updateProgress() {
     localStorage.removeItem('badSince');
     vetoresFases = window.vetoresFases; // volta ao normal
     gerarPlanta();
-    completionMessage = "Planta recuperada! Continue a cuidar para subir de fase.";
+    completionMessage = "Planta recuperada!\nContinue a cuidar para subir de fase.";
     menu = 0;
     mode = "none";
     lastCareTime = Date.now();
@@ -1092,9 +1134,9 @@ function updateProgress() {
       progress.water >= 90
     ) {
       if (faseAtual === 0) {
-        completionMessage = "Parabéns! A tua planta nasceu!";
+        completionMessage = "Parabéns!\nA tua planta nasceu!";
       } else {
-        completionMessage = "Parabéns! Todas as tarefas completas! Planta subiu de fase!";
+        completionMessage = "Parabéns!\nTodas as tarefas completas!\nPlanta subiu de fase!";
       }
       localStorage.setItem('lastGrowthTime', Date.now());
       setTimeout(() => {
