@@ -1,3 +1,22 @@
+//ios compatibilidade
+let motion = false;
+let ios = false;
+
+if (typeof DeviceMotionEvent.requestPermission === 'function') {
+  document.body.addEventListener('click', function() {
+    DeviceMotionEvent.requestPermission()
+      .then(function() {
+        console.log('DeviceMotionEvent enabled');
+
+        motion = true;
+        ios = true;
+      })
+      .catch(function(error) {
+        console.warn('DeviceMotionEvent not enabled', error);
+      })
+  })
+}
+
 let seed;
 let faseAtual = 0;
 let maxFases = 6; // Agora são 6 fases: 0 (vazia) + 5 normais
@@ -32,7 +51,6 @@ let mode = "none";
 let progress = { sing: 0, sunlight: 0, water: 0 };
 let displayedProgress = { sing: 0, sunlight: 0, water: 0 };
 
-let decayRate = 0.05;
 // Torna as tarefas mais lentas de concluir (valor menor = mais lento)
 let progressRate = 0.5; // Valor anterior era 0.5
 let completionMessage = "";
@@ -60,8 +78,8 @@ let showReviveButton = false;
 let menu = 0;
 
 // Variáveis globais para controlar o tempo de espera entre estados (em milissegundos)
-const TEMPO_NORMAL_PARA_BAD = 60 * 1000; // 2 DIAS
-const TEMPO_BAD_PARA_DEAD = 30 * 1000;   // 1 DIA
+const TEMPO_NORMAL_PARA_BAD = 2 * 24 * 60 *60 * 1000; // 2 DIAS
+const TEMPO_BAD_PARA_DEAD = 1 * 24 * 60 * 60 * 1000;   // 1 DIA
 
 // NOVAS VARIÁVEIS PARA CONTROLO DE TAREFAS DIÁRIAS
 let lastTaskTime = {
@@ -69,7 +87,8 @@ let lastTaskTime = {
   sunlight: Date.now(),
   water: Date.now()
 };
-const TASK_RESET_INTERVAL = 30 * 1000; // 20 HORAS
+const TASK_RESET_INTERVAL = 20 * 60 * 60 * 1000; // 20 HORAS
+const TASK_RESET_TAXA = 100 / (TASK_RESET_INTERVAL / 1000); // percentagem por segundo
 
 // Carregar do localStorage se existir
 if (localStorage.getItem('lastTaskTime')) {
@@ -329,6 +348,11 @@ function draw() {
     vetoresFases = window.vetoresFasesDead;
     gerarPlanta();
     showReviveButton = true;
+
+    // Zera os progressos ao morrer
+    progress = { sing: 0, sunlight: 0, water: 0 };
+    displayedProgress = { sing: 0, sunlight: 0, water: 0 };
+    saveProgressToCache();
   }
 
   // Mostra tempo restante para BAD e DEAD na consola
@@ -539,34 +563,7 @@ for (let i = 0; i < planta.length; i++) {
   } else if (mode === "sunlight") {
     drawSunlightAnimation();
   } else if (mode === "water") {
-    // Se for PC (sem touch), usa o rato; se for mobile, usa gamma
-    let isPC = !('ontouchstart' in window || navigator.maxTouchPoints > 0);
-    let waterActive = false;
-    if (isPC) {
-      // Considera "regar" se o botão esquerdo do rato estiver pressionado
-      if (mouseIsPressed) {
-        waterActive = true;
-      }
-    } else {
-      if (abs(gamma) > 20) {
-        waterActive = true;
-      }
-    }
-    if (waterActive) {
-      progress.water += progressRate;
-      activePerformed = true;
-
-      if (frameCount % 5 === 0) {
-        waterDroplets.push({
-          x: random(width),
-          y: 0,
-          speed: random(2, 5),
-          size: random(5, 10),
-          alpha: 255,
-          splashed: false
-        });
-      }
-    }
+    drawWaterAnimation();
   }
 
   if (completionMessage !== "") {
@@ -587,6 +584,8 @@ for (let i = 0; i < planta.length; i++) {
     text("Recomeçar", width / 2, height/2 +15);
   }
   
+
+  console.log(progress.sunlight)
 }
 
 function mousePressed() {
@@ -932,24 +931,26 @@ function saveProgressToCache() {
   }
 }
 
+let lastDecayTime = Date.now(); // Adiciona isto no topo do ficheiro, fora das funções
+
 // Modifique a função updateProgress para guardar o progresso sempre que mudar
 function updateProgress() {
   let activePerformed = false;
+  let changed = false;
 
   // Impede progresso se a planta estiver morta
   if (isDeadState) {
     return;
   }
 
-  // Atualiza percentagem de cada tarefa com base no tempo desde a última realização
-  let now = Date.now();
-  let changed = false;
-  for (let key in progress) {
-    let elapsed = now - (lastTaskTime[key] || now);
-    let percent = 100 - (elapsed / TASK_RESET_INTERVAL) * 100;
-    let newValue = constrain(percent, 0, 100);
-    if (progress[key] !== newValue) {
-      progress[key] = newValue;
+  // Só decresce se não estiver a realizar nenhuma tarefa
+  if (mode === "none" && !activePerformed) {
+    let now = Date.now();
+    if (now - lastDecayTime >= 1000) { // a cada segundo
+      for (let key in progress) {
+        progress[key] = constrain(progress[key] - TASK_RESET_TAXA, 0, 100);
+      }
+      lastDecayTime = now;
       changed = true;
     }
   }
@@ -959,8 +960,8 @@ function updateProgress() {
     if (mode === "sing") {
       let level = mic.getLevel();
       if (level > 0.01) {
-        progress.sing = 100;
-        lastTaskTime.sing = now;
+        progress.sing = constrain(progress.sing + progressRate, 0, 100);
+        lastTaskTime.sing = Date.now();
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
         activePerformed = true;
         changed = true;
@@ -985,8 +986,8 @@ function updateProgress() {
       }
       avg /= (capture.pixels.length / 4);
       if (avg > 100) {
-        progress.sunlight = 100;
-        lastTaskTime.sunlight = now;
+        progress.sunlight = constrain(progress.sunlight + progressRate, 0, 100);
+        lastTaskTime.sunlight = Date.now();
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
         activePerformed = true;
         changed = true;
@@ -1001,20 +1002,9 @@ function updateProgress() {
         }
       }
     } else if (mode === "water") {
-      let isPC = !('ontouchstart' in window || navigator.maxTouchPoints > 0);
-      let waterActive = false;
-      if (isPC) {
-        if (mouseIsPressed) {
-          waterActive = true;
-        }
-      } else {
-        if (abs(gamma) > 20) {
-          waterActive = true;
-        }
-      }
-      if (waterActive) {
-        progress.water = 100;
-        lastTaskTime.water = now;
+      if (abs(gamma) > 20) {
+        progress.water = constrain(progress.water + progressRate, 0, 100);
+        lastTaskTime.water = Date.now();
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
         activePerformed = true;
         changed = true;
