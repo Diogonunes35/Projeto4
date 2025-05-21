@@ -173,24 +173,24 @@ function setup() {
 
   // --- CORREÇÃO: Atualiza o estado da planta conforme o tempo real passado ---
   let now = Date.now();
-  if (!isBadState && !isDeadState && now - lastCareTime > 10 * 1000) {
+  if (!isBadState && !isDeadState && now - lastCareTime > 10 * 60 * 1000) {
     isBadState = true;
     // Se badSince não estava guardado, define agora como o momento em que ficou bad
     if (!badSince) {
-      badSince = lastCareTime + 10 * 1000;
+      badSince = lastCareTime + 10 * 60 * 1000;
       localStorage.setItem('badSince', badSince);
     }
     vetoresFases = window.vetoresFasesBad;
     gerarPlanta();
   }
-  if (isBadState && !isDeadState && badSince && now - badSince > 10 * 1000) {
+  if (isBadState && !isDeadState && badSince && now - badSince > 10 * 60 * 1000) {
     isDeadState = true;
     vetoresFases = window.vetoresFasesDead;
     gerarPlanta();
     showReviveButton = true;
   }
   // Se o utilizador ficou tanto tempo fora que já devia estar dead, força o estado dead
-  if (!isDeadState && badSince && now - badSince > 10 * 1000) {
+  if (!isDeadState && badSince && now - badSince > 10 * 60 * 1000) {
     isBadState = true;
     isDeadState = true;
     vetoresFases = window.vetoresFasesDead;
@@ -263,7 +263,7 @@ function gotWeatherData(data) {
 
 function draw() {
   // BAD: 10 segundos sem cuidar
-  if (!isBadState && !isDeadState && Date.now() - lastCareTime > 10 * 1000) {
+  if (!isBadState && !isDeadState && Date.now() - lastCareTime > 10 * 60 * 1000) {
     isBadState = true;
     vetoresFases = window.vetoresFasesBad;
     gerarPlanta();
@@ -271,8 +271,8 @@ function draw() {
     localStorage.setItem('badSince', badSince); // Salva badSince
   }
 
-  // DEAD: 10 segundos após BAD
-  if (isBadState && !isDeadState && badSince && Date.now() - badSince > 10 * 1000) {
+  // DEAD: 10 minutos após BAD
+  if (isBadState && !isDeadState && badSince && Date.now() - badSince > 10 * 60 * 1000) {
     isDeadState = true;
     vetoresFases = window.vetoresFasesDead;
     gerarPlanta();
@@ -281,7 +281,7 @@ function draw() {
 
   // Mostra tempo restante para BAD e DEAD na consola
   if (!isBadState && !isDeadState) {
-    let tempoRestante = 10 * 1000 - (Date.now() - lastCareTime);
+    let tempoRestante = 10 * 60 * 1000 - (Date.now() - lastCareTime);
     if (tempoRestante > 0) {
       let segundos = Math.ceil(tempoRestante / 1000);
       let min = Math.floor(segundos / 60);
@@ -292,7 +292,7 @@ function draw() {
       );
     }
   } else if (isBadState && !isDeadState && badSince) {
-    let tempoRestante = 10 * 1000 - (Date.now() - badSince);
+    let tempoRestante = 10 * 60 * 1000 - (Date.now() - badSince);
     if (tempoRestante > 0) {
       let segundos = Math.ceil(tempoRestante / 1000);
       let min = Math.floor(segundos / 60);
@@ -400,7 +400,12 @@ function draw() {
     }
   }
 
-  // Desenha barra de progresso
+  //tarefas
+  textSize(windowWidth > 768 ? 24 : 16);
+  if (menu == 0){
+    drawButtons();
+
+    // Desenha barra de progresso
   rectMode(CORNER);
 
   // Ajusta o tamanho da barra de progresso conforme o dispositivo
@@ -427,11 +432,8 @@ function draw() {
   fill(0);
   textAlign(CENTER);
   textSize(windowWidth > 768 ? 24 : 16);
-  text(`Fase: ${faseAtual + 1} de ${maxFases}`, width / 2, barraY + barraAltura / 2 + (windowWidth > 768 ? 10 : 6));
+  text(`Fase: ${faseAtual + 1} de ${maxFases}`, width / 2, barraY + barraAltura/3  + (windowWidth > 768 ? 10 : 6));
 
-  //tarefas
-  if (menu == 0){
-    drawButtons();
   }
   if(menu == 1){
     updateProgress();
@@ -457,7 +459,34 @@ function draw() {
   } else if (mode === "sunlight") {
     drawSunlightAnimation();
   } else if (mode === "water") {
-    drawWaterAnimation();
+    // Se for PC (sem touch), usa o rato; se for mobile, usa gamma
+    let isPC = !('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    let waterActive = false;
+    if (isPC) {
+      // Considera "regar" se o botão esquerdo do rato estiver pressionado
+      if (mouseIsPressed) {
+        waterActive = true;
+      }
+    } else {
+      if (abs(gamma) > 20) {
+        waterActive = true;
+      }
+    }
+    if (waterActive) {
+      progress.water += progressRate;
+      activePerformed = true;
+
+      if (frameCount % 5 === 0) {
+        waterDroplets.push({
+          x: random(width),
+          y: 0,
+          speed: random(2, 5),
+          size: random(5, 10),
+          alpha: 255,
+          splashed: false
+        });
+      }
+    }
   }
 
   if (completionMessage !== "") {
@@ -783,7 +812,20 @@ function updateProgress() {
         }
       }
     } else if (mode === "water") {
-      if (abs(gamma) > 20) {
+      // Se for PC (sem touch), usa o rato; se for mobile, usa gamma
+      let isPC = !('ontouchstart' in window || navigator.maxTouchPoints > 0);
+      let waterActive = false;
+      if (isPC) {
+        // Considera "regar" se o botão esquerdo do rato estiver pressionado
+        if (mouseIsPressed) {
+          waterActive = true;
+        }
+      } else {
+        if (abs(gamma) > 20) {
+          waterActive = true;
+        }
+      }
+      if (waterActive) {
         progress.water += progressRate;
         activePerformed = true;
 
@@ -817,8 +859,27 @@ function updateProgress() {
     }
   }
 
-  if (progress[mode] >= 100 && completionMessage === "") {
-    completionMessage = `Congrats! ${capitalize(mode)} task completed!`;
+  // NOVO: Sobe de fase automaticamente quando todas as tarefas estão completas
+  if (
+    progress.sing >= 100 &&
+    progress.sunlight >= 100 &&
+    progress.water >= 100 &&
+    completionMessage === ""
+  ) {
+    completionMessage = "Parabéns! Todas as tarefas completas! Planta subiu de fase!";
+    setTimeout(() => {
+      if (faseAtual < maxFases - 1) {
+        faseAtual++;
+        gerarPlanta();
+        localStorage.setItem('faseAtual', faseAtual);
+      }
+      // Resetar progresso para próxima fase
+      progress = { sing: 0, sunlight: 0, water: 0 };
+      displayedProgress = { sing: 0, sunlight: 0, water: 0 };
+      completionMessage = "";
+      menu = 0;
+      mode = "none";
+    }, 1500); // Espera 1.5s para mostrar mensagem
   }
 }
 
@@ -921,4 +982,4 @@ window.addEventListener('beforeunload', () => {
   if (badSince) {
     localStorage.setItem('badSince', badSince);
   }
-}); 
+});
