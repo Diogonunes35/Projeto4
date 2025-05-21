@@ -1,9 +1,6 @@
 let seed;
 let faseAtual = 0;
-let componentes = []; // Lista de imagens da planta
-let vetoresFases = []; // Matriz de vetores para cada fase
-let planta = []; // Componentes atuais da planta
-let maxFases = 5;
+let maxFases = 6; // Agora são 6 fases: 0 (vazia) + 5 normais
 
 //variaveis tempo
 let temperature = 0;
@@ -91,40 +88,52 @@ function preload() {
   vetoresFases = [];
   for (let fase = 0; fase < maxFases; fase++) {
     let vetoresParaFase = [];
-    for (let i = 0; i < 5; i++) {
-      let caminho = `assets/live/fase${fase}/${i}.svg`;
-      let img = loadImage(
-        caminho,
-        () => console.log(`Imagem carregada: ${caminho}`),
-        () => console.error(`Erro ao carregar: ${caminho}`)
-      );
-      vetoresParaFase.push(img);
+    // Fase 0 não tem partes da planta
+    if (fase === 0) {
+      // Não adiciona nenhuma imagem
+    } else {
+      for (let i = 0; i < 5; i++) {
+        let caminho = `assets/live/fase${fase - 1}/${i}.svg`; // -1 porque assets começam na antiga fase 1
+        let img = loadImage(
+          caminho,
+          () => console.log(`Imagem carregada: ${caminho}`),
+          () => console.error(`Erro ao carregar: ${caminho}`)
+        );
+        vetoresParaFase.push(img);
+      }
     }
     vetoresFases.push(vetoresParaFase);
   }
-  window.vetoresFases = vetoresFases; // <-- ADICIONA ESTA LINHA
+  window.vetoresFases = vetoresFases;
 
-  // Carrega também os assets "bad" (apenas 1 vetor por fase)
+  // BAD e DEAD também precisam de fase 0 vazia
   window.vetoresFasesBad = [];
   for (let fase = 0; fase < maxFases; fase++) {
-    let caminhoBad = `assets/bad/fase${fase}.svg`;
-    let imgBad = loadImage(
-      caminhoBad,
-      () => console.log(`Imagem BAD carregada: ${caminhoBad}`),
-      () => console.error(`Erro ao carregar BAD: ${caminhoBad}`)
-    );
-    window.vetoresFasesBad.push([imgBad]);
+    if (fase === 0) {
+      window.vetoresFasesBad.push([]); // vazio
+    } else {
+      let caminhoBad = `assets/bad/fase${fase - 1}.svg`;
+      let imgBad = loadImage(
+        caminhoBad,
+        () => console.log(`Imagem BAD carregada: ${caminhoBad}`),
+        () => console.error(`Erro ao carregar BAD: ${caminhoBad}`)
+      );
+      window.vetoresFasesBad.push([imgBad]);
+    }
   }
-  // Carrega também os assets "dead" (apenas 1 vetor por fase)
   window.vetoresFasesDead = [];
   for (let fase = 0; fase < maxFases; fase++) {
-    let caminhoDead = `assets/dead/fase${fase}.svg`;
-    let imgDead = loadImage(
-      caminhoDead,
-      () => console.log(`Imagem DEAD carregada: ${caminhoDead}`),
-      () => console.error(`Erro ao carregar DEAD: ${caminhoDead}`)
-    );
-    window.vetoresFasesDead.push([imgDead]);
+    if (fase === 0) {
+      window.vetoresFasesDead.push([]); // vazio
+    } else {
+      let caminhoDead = `assets/dead/fase${fase - 1}.svg`;
+      let imgDead = loadImage(
+        caminhoDead,
+        () => console.log(`Imagem DEAD carregada: ${caminhoDead}`),
+        () => console.error(`Erro ao carregar DEAD: ${caminhoDead}`)
+      );
+      window.vetoresFasesDead.push([imgDead]);
+    }
   }
   console.log("Imagens carregadas:", vetoresFases);
 }
@@ -244,9 +253,9 @@ function gerarPlanta() {
   planta = [];
   let plantaIndices = [];
 
+  // Fase 0: não adiciona nada à planta
   for (let i = 0; i <= faseAtual; i++) {
-    if (vetoresFases[i]) {
-      // Se for estado ruim, só existe 1 vetor por fase
+    if (vetoresFases[i] && vetoresFases[i].length > 0) {
       let vetorIndex = (vetoresFases[i].length === 1) ? 0 : int(random(0, 5));
       let img = vetoresFases[i][vetorIndex];
 
@@ -256,9 +265,8 @@ function gerarPlanta() {
       } else {
         console.error(`Imagem da fase ${i}, índice ${vetorIndex} não foi carregada.`);
       }
-    } else {
-      console.error(`Fase ${i} não encontrada em vetoresFases.`);
     }
+    // Se for fase 0, não faz nada (planta fica vazia)
   }
 
   console.log("Planta gerada:", planta);
@@ -611,6 +619,7 @@ function keyPressed() {
   if (key === 'r' || key === 'R') {
     // Limpa localStorage
     limparLocalStorage();
+    localStorage.removeItem('plantaCriada');
 
     // Reseta variáveis principais
     lastCareTime = Date.now();
@@ -634,13 +643,9 @@ function keyPressed() {
     };
     localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
     localStorage.setItem('lastCareTime', lastCareTime);
-
-    // Recarrega/reinicializa planta e dados
-    inicializarDados();
-    preload();
-    gerarPlanta();
-
-    // Opcional: recarrega a página para garantir tudo limpo
+    faseAtual = 0; // Planta volta a não aparecer
+    planta = [];
+    // NÃO chamar gerarPlanta() aqui!
     window.location.reload();
   }
 
@@ -983,35 +988,47 @@ function updateProgress() {
     canGrow &&
     completionMessage === ""
   ) {
-    completionMessage = "Parabéns! Todas as tarefas completas! Planta subiu de fase!";
-    localStorage.setItem('lastGrowthTime', Date.now());
-    setTimeout(() => {
-      if (faseAtual < maxFases - 1) {
-        faseAtual++;
-        gerarPlanta();
-        localStorage.setItem('faseAtual', faseAtual);
+    // Só permite crescer se TODAS as tarefas estiverem >= 90% no momento do crescimento
+    // (impede que uma tarefa seja completada e as outras não, mesmo na fase 0)
+    if (
+      progress.sing >= 90 &&
+      progress.sunlight >= 90 &&
+      progress.water >= 90
+    ) {
+      if (faseAtual === 0) {
+        completionMessage = "Parabéns! A tua planta nasceu!";
+      } else {
+        completionMessage = "Parabéns! Todas as tarefas completas! Planta subiu de fase!";
       }
-      // Resetar progresso para próxima fase
-      progress = { sing: 0, sunlight: 0, water: 0 };
-      displayedProgress = { sing: 0, sunlight: 0, water: 0 };
-      completionMessage = "";
-      menu = 0;
-      mode = "none";
-      lastCareTime = Date.now();
-      localStorage.setItem('lastCareTime', lastCareTime);
-      badSince = null;
-      localStorage.removeItem('badSince');
-      isBadState = false;
-      isDeadState = false;
-      showReviveButton = false;
-      // Reinicia os tempos das tarefas para o novo ciclo
-      lastTaskTime = {
-        sing: Date.now(),
-        sunlight: Date.now(),
-        water: Date.now()
-      };
-      localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
-    }, 1500);
+      localStorage.setItem('lastGrowthTime', Date.now());
+      setTimeout(() => {
+        if (faseAtual < maxFases - 1) {
+          faseAtual++;
+          gerarPlanta();
+          localStorage.setItem('faseAtual', faseAtual);
+        }
+        // Resetar progresso para próxima fase
+        progress = { sing: 0, sunlight: 0, water: 0 };
+        displayedProgress = { sing: 0, sunlight: 0, water: 0 };
+        completionMessage = "";
+        menu = 0;
+        mode = "none";
+        lastCareTime = Date.now();
+        localStorage.setItem('lastCareTime', lastCareTime);
+        badSince = null;
+        localStorage.removeItem('badSince');
+        isBadState = false;
+        isDeadState = false;
+        showReviveButton = false;
+        // Reinicia os tempos das tarefas para o novo ciclo
+        lastTaskTime = {
+          sing: Date.now(),
+          sunlight: Date.now(),
+          water: Date.now()
+        };
+        localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
+      }, 1500);
+    }
   }
 }
 
