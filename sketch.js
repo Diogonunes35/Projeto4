@@ -34,7 +34,7 @@ let displayedProgress = { sing: 0, sunlight: 0, water: 0 };
 
 let decayRate = 0.05;
 // Torna as tarefas mais lentas de concluir (valor menor = mais lento)
-let progressRate = 0.1; // Valor anterior era 0.5
+let progressRate = 0.5; // Valor anterior era 0.5
 let completionMessage = "";
 
 let musicalNotes = [];
@@ -60,8 +60,8 @@ let showReviveButton = false;
 let menu = 0;
 
 // Variáveis globais para controlar o tempo de espera entre estados (em milissegundos)
-const TEMPO_NORMAL_PARA_BAD = 1 * 60 * 1000; // 1 minuto do normal para bad
-const TEMPO_BAD_PARA_DEAD = 30 * 1000;       // 30 segundos do bad para dead
+const TEMPO_NORMAL_PARA_BAD = 60 * 1000; // 2 DIAS
+const TEMPO_BAD_PARA_DEAD = 30 * 1000;   // 1 DIA
 
 // NOVAS VARIÁVEIS PARA CONTROLO DE TAREFAS DIÁRIAS
 let lastTaskTime = {
@@ -69,7 +69,7 @@ let lastTaskTime = {
   sunlight: Date.now(),
   water: Date.now()
 };
-const TASK_RESET_INTERVAL = 30 * 1000; // 30 segundos em ms
+const TASK_RESET_INTERVAL = 30 * 1000; // 20 HORAS
 
 // Carregar do localStorage se existir
 if (localStorage.getItem('lastTaskTime')) {
@@ -82,6 +82,20 @@ if (localStorage.getItem('lastTaskTime')) {
       sunlight: Date.now(),
       water: Date.now()
     };
+  }
+}
+
+// Carrega progresso do localStorage ao iniciar
+if (localStorage.getItem('progress')) {
+  try {
+    let cachedProgress = JSON.parse(localStorage.getItem('progress'));
+    for (let key in progress) {
+      if (typeof cachedProgress[key] === "number") {
+        progress[key] = cachedProgress[key];
+      }
+    }
+  } catch (e) {
+    // Se der erro, ignora
   }
 }
 
@@ -138,7 +152,7 @@ function preload() {
   }
   console.log("Imagens carregadas:", vetoresFases);
 
-  vasoImg = loadImage("assets/pots/vaso1.svg");
+  vasoImg = loadImage("assets/pots/vaso3.svg");
 }
 
 function setup() {
@@ -457,8 +471,8 @@ for (let i = 0; i < planta.length; i++) {
   textSize(windowWidth > 768 ? 24 : 16);
   if (menu == 0){
     if(!isDeadState){
+      updateProgress();
     drawButtons();
-
     // Desenha barra de progresso
   rectMode(CORNER);
 
@@ -868,18 +882,57 @@ function star(x, y, radius1, radius2, npoints) {
 //tarefas
 function drawButtons() {
   let labels = ["Sing", "Sunlight", "Water"];
+  let progressKeys = ["sing", "sunlight", "water"];
+
+  // Carrega progresso do localStorage (cache) para garantir atualização em tempo real
+  let cachedProgress = {};
+  try {
+    const cached = localStorage.getItem('progress');
+    if (cached) {
+      cachedProgress = JSON.parse(cached);
+      // Atualiza apenas se for diferente do atual (evita sobrescrever progresso em memória)
+      for (let key of progressKeys) {
+        if (typeof cachedProgress[key] === "number") {
+          progress[key] = cachedProgress[key];
+        }
+      }
+    }
+  } catch (e) {
+    // Se der erro, ignora e usa o progresso em memória
+  }
+
   for (let i = 0; i < labels.length; i++) {
     let w = width / 5;
     let x = i * (width / 3) + width / 15;
-    let y = height-80;
+    let y = height - 80;
     let h = 40;
-    fill(mode === labels[i].toLowerCase() ? '#aaa' : '#ddd');
+    // Botão vermelho, mais escuro se selecionado
+    fill(mode === labels[i].toLowerCase() ? '#b71c1c' : '#e53935');
     rect(x, y, w, h, 10);
-    fill(0);
+
+    // Retângulo azul de progresso (altura em tempo real)
+    let progresso = constrain(progress[progressKeys[i]], 0, 100);
+    let progressoAltura = h * (progresso / 100);
+    if (progressoAltura > 0) {
+      fill(33, 150, 243); // azul
+      rect(x, y + h - progressoAltura, w, progressoAltura, 10, 10, 10, 10);
+    }
+
+    fill(255);
     text(labels[i], x + w / 2, y + h / 2);
   }
 }
 
+// Salva o progresso no localStorage sempre que houver alteração
+function saveProgressToCache() {
+  try {
+    localStorage.setItem('progress', JSON.stringify(progress));
+  } catch (e) {
+    // Se der erro, ignora
+  }
+}
+
+// Modifique a função updateProgress para guardar o progresso sempre que mudar
 function updateProgress() {
   let activePerformed = false;
 
@@ -890,11 +943,15 @@ function updateProgress() {
 
   // Atualiza percentagem de cada tarefa com base no tempo desde a última realização
   let now = Date.now();
+  let changed = false;
   for (let key in progress) {
     let elapsed = now - (lastTaskTime[key] || now);
-    // Decresce linearmente ao longo de 24h até chegar a 0
     let percent = 100 - (elapsed / TASK_RESET_INTERVAL) * 100;
-    progress[key] = constrain(percent, 0, 100);
+    let newValue = constrain(percent, 0, 100);
+    if (progress[key] !== newValue) {
+      progress[key] = newValue;
+      changed = true;
+    }
   }
 
   // Só atualiza a tarefa ativa
@@ -906,6 +963,7 @@ function updateProgress() {
         lastTaskTime.sing = now;
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
         activePerformed = true;
+        changed = true;
         if (frameCount % 5 === 0) {
           musicalNotes.push({
             x: random(width),
@@ -931,6 +989,7 @@ function updateProgress() {
         lastTaskTime.sunlight = now;
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
         activePerformed = true;
+        changed = true;
         if (frameCount % 5 === 0) {
           sunParticles.push({
             x: random(width),
@@ -958,6 +1017,7 @@ function updateProgress() {
         lastTaskTime.water = now;
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
         activePerformed = true;
+        changed = true;
         if (frameCount % 5 === 0) {
           waterDroplets.push({
             x: random(width),
@@ -1076,6 +1136,10 @@ function updateProgress() {
       }, 1500);
     }
   }
+
+  if (changed) {
+    saveProgressToCache();
+  }
 }
 
 function drawProgressBar() {
@@ -1178,3 +1242,12 @@ window.addEventListener('beforeunload', () => {
     localStorage.setItem('badSince', badSince);
   }
 });
+
+
+function resetWaterProgress() {
+  progress.sunlight = 0;
+  displayedProgress.sunlight = 0;
+  lastTaskTime.sunlight = Date.now();
+  saveProgressToCache();
+  localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
+}
