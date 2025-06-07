@@ -118,7 +118,29 @@ if (localStorage.getItem('progress')) {
   }
 }
 
+let backgroundMusic;
+let levelUpSound;
+let completedSound;
+
 function preload() {
+  // Load background music
+  backgroundMusic = loadSound('assets/sound/background.mp3', 
+    () => console.log("Background music loaded successfully"),
+    () => console.error("Failed to load background music")
+  );
+  
+  // Load level up sound
+  levelUpSound = loadSound('assets/sound/levelup.mp3',
+    () => console.log("Level up sound loaded successfully"),
+    () => console.error("Failed to load level up sound")
+  );
+  
+  // Load task completed sound
+  completedSound = loadSound('assets/sound/completed.mp3',
+    () => console.log("Task completed sound loaded successfully"),
+    () => console.error("Failed to load task completed sound")
+  );
+  
   vetoresFases = [];
   for (let fase = 0; fase < maxFases; fase++) {
     let vetoresParaFase = [];
@@ -176,7 +198,14 @@ function preload() {
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-
+  
+  // Set up background music to play in loop
+  if (backgroundMusic) {
+    backgroundMusic.setLoop(true);
+    backgroundMusic.setVolume(0.5); // Set volume to 50%
+    // We'll start the music on user interaction
+  }
+  
   try {
     if (localStorage.getItem('plantaSeed')) {
       seed = localStorage.getItem('plantaSeed');
@@ -632,7 +661,9 @@ for (let i = 0; i < planta.length; i++) {
 
 function mousePressed() {
   userStartAudio();
-  // Se a planta estiver morta e o botão estiver visível, reseta tudo
+  startBackgroundMusic();
+  
+  // If the plant is dead and the button is visible, reset everything
   if (showReviveButton && isDeadState) {
     if (
       mouseX > width / 2 - 110 &&
@@ -999,6 +1030,8 @@ function updateProgress() {
 
   // Só atualiza a tarefa ativa
   if (progress[mode] < 100) {
+    let previousProgress = progress[mode];
+    
     if (mode === "sing") {
       let level = mic.getLevel();
       if (level > 0.01) {
@@ -1007,6 +1040,12 @@ function updateProgress() {
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
         activePerformed = true;
         changed = true;
+        
+        // Check if task just reached 100%
+        if (previousProgress < 100 && progress.sing >= 100 && completedSound) {
+          completedSound.play();
+        }
+        
         if (frameCount % 5 === 0) {
           musicalNotes.push({
             x: random(width),
@@ -1033,6 +1072,12 @@ function updateProgress() {
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
         activePerformed = true;
         changed = true;
+        
+        // Check if task just reached 100%
+        if (previousProgress < 100 && progress.sunlight >= 100 && completedSound) {
+          completedSound.play();
+        }
+        
         if (frameCount % 5 === 0) {
           sunParticles.push({
             x: random(width),
@@ -1044,12 +1089,18 @@ function updateProgress() {
         }
       }
     } else if (mode === "water") {
-      if (abs(gamma) > 20) {
+      if (abs(gamma) > 20) {  // Check if device is tilted enough
         progress.water = constrain(progress.water + progressRate, 0, 100);
         lastTaskTime.water = Date.now();
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
         activePerformed = true;
         changed = true;
+        
+        // Check if task just reached 100%
+        if (previousProgress < 100 && progress.water >= 100 && completedSound) {
+          completedSound.play();
+        }
+        
         if (frameCount % 5 === 0) {
           waterDroplets.push({
             x: random(width),
@@ -1133,6 +1184,11 @@ function updateProgress() {
       progress.sunlight >= 90 &&
       progress.water >= 90
     ) {
+      // Play level up sound
+      if (levelUpSound) {
+        levelUpSound.play();
+      }
+      
       if (faseAtual === 0) {
         completionMessage = "Parabéns!\nA tua planta nasceu!";
       } else {
@@ -1145,9 +1201,13 @@ function updateProgress() {
           gerarPlanta();
           localStorage.setItem('faseAtual', faseAtual);
         }
-        // Resetar progresso para próxima fase
-        progress = { sing: 0, sunlight: 0, water: 0 };
-        displayedProgress = { sing: 0, sunlight: 0, water: 0 };
+        // Remove this line that resets progress to zero
+        // progress = { sing: 0, sunlight: 0, water: 0 };
+        // displayedProgress = { sing: 0, sunlight: 0, water: 0 };
+        
+        // Instead, keep the current progress values
+        // (they're already saved in localStorage)
+        
         completionMessage = "";
         menu = 0;
         mode = "none";
@@ -1158,13 +1218,17 @@ function updateProgress() {
         isBadState = false;
         isDeadState = false;
         showReviveButton = false;
-        // Reinicia os tempos das tarefas para o novo ciclo
+        
+        // Update the last task times without resetting progress
         lastTaskTime = {
           sing: Date.now(),
           sunlight: Date.now(),
           water: Date.now()
         };
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
+        
+        // Make sure to save the current progress to cache
+        saveProgressToCache();
       }, 1500);
     }
   }
@@ -1282,4 +1346,10 @@ function resetWaterProgress() {
   lastTaskTime.sunlight = Date.now();
   saveProgressToCache();
   localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
+}
+
+function startBackgroundMusic() {
+  if (backgroundMusic && !backgroundMusic.isPlaying()) {
+    backgroundMusic.play();
+  }
 }
