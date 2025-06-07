@@ -450,6 +450,7 @@ function draw() {
     fill(fenceColor);
     rect(x, y, postWidth, postHeight, 3);
     stroke(160, 80, 60);
+    strokeWeight(3);
     line(x + 5, y + 10, x + 5, y + postHeight - 10);
     line(x + 10, y + 5, x + 10, y + postHeight - 5);
     noStroke();
@@ -516,25 +517,52 @@ for (let i = 0; i < planta.length; i++) {
     barraY = 60;
   }
 
-  fill(255);
-  rect(barraX, barraY, barraLargura, barraAltura, 10);
-  fill(0, 255, 0);
-
-  // A barra vai de 0 (fase 0) até maxFases-2 (fase 4), pois maxFases=6 (0 a 5), mas só mostra até 5/5
+  // Modern rounded progress bar with shadow and emoji
   let maxFaseVisivel = maxFases - 1; // Agora mostra até fase 5 de 5
   let progression = map(faseAtual, 0, maxFaseVisivel, 0, barraLargura);
-  if (faseAtual >= maxFaseVisivel) {
-    progression = barraLargura;
-  }
-  rect(barraX, barraY, progression, barraAltura, 10);
+  if (faseAtual >= maxFaseVisivel) progression = barraLargura;
 
-  fill(0);
-  textAlign(CENTER);
-  textSize(windowWidth > 768 ? 24 : 16);
+  // Shadow
+  push();
+  noStroke();
+  fill(0, 40);
+  rect(barraX, barraY + 6, barraLargura, barraAltura, barraAltura / 2);
+  pop();
+
+  // Background bar
+  noStroke();
+  fill(240);
+  rect(barraX, barraY, barraLargura, barraAltura, barraAltura / 2);
+
+  // Progress bar (gradient green)
+  let grad = drawingContext.createLinearGradient(barraX, 0, barraX + progression, 0);
+  grad.addColorStop(0, '#43e97b');
+  grad.addColorStop(1, '#38f9d7');
+  drawingContext.save();
+  drawingContext.fillStyle = grad;
+  rect(barraX, barraY, progression, barraAltura, barraAltura / 2);
+  drawingContext.restore();
+  noStroke();
+
+  // Border
+  stroke(80, 180, 120, 120);
+  strokeWeight(2);
+  noFill();
+  rect(barraX, barraY, barraLargura, barraAltura, barraAltura / 2);
+
+  // Plant emoji at the end of the bar
+  noStroke();
+  textSize(barraAltura * 1.2);
+  textAlign(CENTER, CENTER);
+  text("🪴", barraX + progression, barraY + barraAltura / 2);
+
+  // Text label
+  fill(0, 120);
+  textSize(windowWidth > 768 ? 22 : 14);
   if (faseAtual >= maxFaseVisivel) {
-    text(`Máximo`, width / 2, barraY + barraAltura / 3 + (windowWidth > 768 ? 10 : 6));
+    text(`Máximo`, width / 2, barraY + barraAltura / 2);
   } else {
-    text(`Fase: ${faseAtual} de ${maxFaseVisivel}`, width / 2, barraY + barraAltura / 3 + (windowWidth > 768 ? 10 : 6));
+    text(`Fase: ${faseAtual} de ${maxFaseVisivel}`, width / 2, barraY + barraAltura / 2);
   }
   }
   }
@@ -543,61 +571,46 @@ for (let i = 0; i < planta.length; i++) {
     updateProgress();
     drawProgressBar();
 
-    fill(0);
-    rectMode(CENTER);
-    push();
-    translate(40, 40);
-    rotate(PI / 4);
-    rect(0, 0, 50, 7);
-    pop();
-    rectMode(CORNER);
-
-    push();
-    translate(20, 55);
-    rotate(-PI / 4);
-    rect(0, 0, 50, 7);
-    pop();
-    rectMode(CORNER);
+     // Circular exit button
+  push();
+  noStroke();
+  fill(220, 60, 60, 230); // Red with some transparency
+  ellipse(40, 40, 44, 44); // Circle button
+  stroke(255);
+  strokeWeight(4);
+  line(28, 28, 52, 52); // X
+  line(52, 28, 28, 52);
+  pop();
   }
   if (menu == 2){
     updateProgress();
     drawProgressBar();
   
-    fill(0);
-    rectMode(CENTER);
-    push();
-    translate(40, 40);
-    rotate(PI / 4);
-    rect(0, 0, 50, 7);
-    pop();
-    rectMode(CORNER);
-
-    push();
-    translate(20, 55);
-    rotate(-PI / 4);
-    rect(0, 0, 50, 7);
-    pop();
-    rectMode(CORNER);
+     // Circular exit button
+  push();
+  noStroke();
+  fill(220, 60, 60, 230); // Red with some transparency
+  ellipse(40, 40, 44, 44); // Circle button
+  stroke(255);
+  strokeWeight(4);
+  line(28, 28, 52, 52); // X
+  line(52, 28, 28, 52);
+  pop();
   }
   if (menu == 3){
     updateProgress();
     drawProgressBar();
  
-    fill(0);
-    rectMode(CENTER);
-    push();
-    translate(40, 40);
-    rotate(PI / 4);
-    rect(0, 0, 50, 7);
-    pop();
-    rectMode(CORNER);
-
-    push();
-    translate(20, 55);
-    rotate(-PI / 4);
-    rect(0, 0, 50, 7);
-    pop();
-    rectMode(CORNER);
+     // Circular exit button
+  push();
+  noStroke();
+  fill(220, 60, 60, 230); // Red with some transparency
+  ellipse(40, 40, 44, 44); // Circle button
+  stroke(255);
+  strokeWeight(4);
+  line(28, 28, 52, 52); // X
+  line(52, 28, 28, 52);
+  pop();
   }
 
   if (mode === "sing") {
@@ -609,21 +622,36 @@ for (let i = 0; i < planta.length; i++) {
   }
 
   if (completionMessage !== "") {
-    fill(0, 200, 0);
-    textSize(24);
-    text(completionMessage, width / 2, height / 2 + 100);
-  }
+    // Card background with shadow
+    push();
+    rectMode(CENTER);
+    noStroke();
+    fill(0, 180); // semi-transparent black
+    rect(width / 2, height / 2, 380, 180, 32);
+    pop();
 
-  // Botão para reviver planta se estiver morta
-  if (showReviveButton && isDeadState) {
-    fill(255, 0, 0);
-    rectMode(CORNER);
-    rect(width / 2 - 110, height / 2 - 30, 220, 60, 15);
-    fill(255);
-    textSize(22);
+    // Shadow for emoji
+    push();
     textAlign(CENTER, CENTER);
-    text("A planta morreu", width / 2, height/2 -10);
-    text("Recomeçar", width / 2, height/2 +15);
+    textSize(80);
+    fill(0, 60);
+    text("🪴", width / 2 + 4, height / 2 - 32 + 4);
+    pop();
+
+    // Emoji
+    textSize(80);
+    text("🪴", width / 2, height / 2 - 32);
+
+    // Congratulatory message
+    textSize(28);
+    fill(255);
+    textStyle(BOLD);
+    text("Parabéns!", width / 2, height / 2 + 30);
+
+    textSize(18);
+    textStyle(NORMAL);
+    fill(220);
+    text("A tua planta cresceu para a próxima fase!", width / 2, height / 2 + 65);
   }
   
 
@@ -682,33 +710,35 @@ function mousePressed() {
   }
 
   let labels = ["sing", "sunlight", "water"];
+  let diameter = min(width, 320) / 3.2;
+  let spacing = width / (labels.length + 1);
+  let btnY = height - diameter - 30;
   for (let i = 0; i < labels.length; i++) {
-    let x = i * (width / 3) + width / 15;
-    let y = height - 80;
-    let w = width / 5;
-    let h = 40;
-    if(menu == 0 && !isDeadState){
-      if (mouseX > x && mouseX < x + w && mouseY > y && mouseY < y + h) {
+    let btnX = spacing * (i + 1);
+    let dx = mouseX - btnX;
+    let dy = mouseY - btnY;
+    if (menu == 0 && !isDeadState) {
+      if (dx * dx + dy * dy < (diameter / 2) * (diameter / 2)) {
         mode = labels[i];
-        if (labels[i] === "sing") {
-          menu = 1;
-        }
-        if (labels[i] === "sunlight") {
-          menu = 2;
-        }
+        if (labels[i] === "sing") menu = 1;
+        if (labels[i] === "sunlight") menu = 2;
         if (labels[i] === "water") {
           menu = 3;
+          // DEBUG: Complete water task instantly
+          progress.water = 100;
+          displayedProgress.water = 100;
+          saveProgressToCache();
         }
         completionMessage = "";
       }
     }
   }
 
-  if (mouseX > 20 && mouseX < 60 && mouseY > 20 && mouseY < 60) {
-    menu = 0;
-    mode = "none";
-    completionMessage = "";
-  }
+  if (dist(mouseX, mouseY, 40, 40) < 22) {
+  menu = 0;
+  mode = "none";
+  completionMessage = "";
+}
 }
 
 function limparLocalStorage() {
@@ -924,6 +954,13 @@ function star(x, y, radius1, radius2, npoints) {
 function drawButtons() {
   let labels = ["Sing", "Sunlight", "Water"];
   let progressKeys = ["sing", "sunlight", "water"];
+  let emojis = ["🎤", "☀️", "💧"];
+
+  // Responsive button size and layout
+  let buttonCount = labels.length;
+  let diameter = min(width, 320) / 3.2;
+  let spacing = width / (buttonCount + 1);
+  let y = height - diameter + 20;
 
   // Carrega progresso do localStorage (cache) para garantir atualização em tempo real
   let cachedProgress = {};
@@ -931,36 +968,53 @@ function drawButtons() {
     const cached = localStorage.getItem('progress');
     if (cached) {
       cachedProgress = JSON.parse(cached);
-      // Atualiza apenas se for diferente do atual (evita sobrescrever progresso em memória)
       for (let key of progressKeys) {
         if (typeof cachedProgress[key] === "number") {
           progress[key] = cachedProgress[key];
         }
       }
     }
-  } catch (e) {
-    // Se der erro, ignora e usa o progresso em memória
-  }
+  } catch (e) {}
+
+  textAlign(CENTER, CENTER);
 
   for (let i = 0; i < labels.length; i++) {
-    let w = width / 5;
-    let x = i * (width / 3) + width / 15;
-    let y = height - 80;
-    let h = 40;
-    // Botão vermelho, mais escuro se selecionado
-    fill(mode === labels[i].toLowerCase() ? '#b71c1c' : '#e53935');
-    rect(x, y, w, h, 10);
+    let x = spacing * (i + 1);
 
-    // Retângulo azul de progresso (altura em tempo real)
+    // Shadow
+    noStroke();
+    fill(0, 40);
+    ellipse(x, y + 7, diameter * 1.08);
+
+    // Fundo do botão (sólido)
+    fill(mode === labels[i].toLowerCase() ? '#43a047' : '#BEE7B8');
+    ellipse(x, y, diameter);
+
+    // --- ARCO DE PROGRESSO COM GRADIENTE ---
     let progresso = constrain(progress[progressKeys[i]], 0, 100);
-    let progressoAltura = h * (progresso / 100);
-    if (progressoAltura > 0) {
-      fill(33, 150, 243); // azul
-      rect(x, y + h - progressoAltura, w, progressoAltura, 10, 10, 10, 10);
+    let angle = map(progresso, 0, 100, 0, TWO_PI);
+
+    // Desenha o arco com gradiente usando pequenos segmentos
+    let arcSteps = 80;
+    for (let j = 0; j < arcSteps; j++) {
+      let t0 = j / arcSteps;
+      let t1 = (j + 1) / arcSteps;
+      let a0 = -HALF_PI + t0 * angle;
+      let a1 = -HALF_PI + t1 * angle;
+      let gradColor = lerpColor(color('#43e97b'), color('#38f9d7'), t0);
+      stroke(gradColor);
+      strokeWeight(diameter * 0.13);
+      noFill();
+      arc(x, y, diameter * 0.82, diameter * 0.82, a0, a1);
     }
 
+    // Emoji
+    noStroke();
     fill(255);
-    text(labels[i], x + w / 2, y + h / 2);
+    textSize(diameter * 0.38);
+    text(emojis[i], x, y);
+
+    fill(255); // Reset fill
   }
 }
 
@@ -1108,10 +1162,10 @@ function updateProgress() {
     localStorage.setItem('lastCareTime', lastCareTime);
     showReviveButton = false;
 
-    // Adicione esta linha para limpar a mensagem após 2 segundos
+    // Adicione esta linha para limpar a mensagem após 5 segundos
     setTimeout(() => {
       completionMessage = "";
-    }, 2000);
+    }, 5000);
 
     return;
   }
@@ -1185,15 +1239,47 @@ function drawProgressBar() {
     y = 50;
   }
 
-  fill(220);
-  rect(x, y, barWidth, barHeight, 10);
+  // Sombra
+  push();
+  noStroke();
+  fill(0, 40);
+  rect(x, y + 5, barWidth, barHeight, barHeight / 2);
+  pop();
 
+  // Fundo da barra
+  noStroke();
+  fill(240);
+  rect(x, y, barWidth, barHeight, barHeight / 2);
+
+  // Barra de progresso (gradiente)
   let p = displayedProgress[mode];
-  fill(100, 200, 100);
-  rect(x, y, map(p, 0, 100, 0, barWidth), barHeight, 10);
+  let progression = map(p, 0, 100, 0, barWidth);
+  let grad = drawingContext.createLinearGradient(x, 0, x + progression, 0);
+  grad.addColorStop(0, '#43e97b');
+  grad.addColorStop(1, '#38f9d7');
+  drawingContext.save();
+  drawingContext.fillStyle = grad;
+  rect(x, y, progression, barHeight, barHeight / 2);
+  drawingContext.restore();
 
-  fill(0);
-  text(`${capitalize(mode)}: ${floor(p)}%`, width / 2, y+15);
+  // Borda
+  stroke(80, 180, 120, 120);
+  strokeWeight(2);
+  noFill();
+  rect(x, y, barWidth, barHeight, barHeight / 2);
+
+  // Emoji da tarefa no fim da barra
+  let emoji = "🌱";
+  if (mode === "sing") emoji = "🎤";
+  if (mode === "sunlight") emoji = "☀️";
+  if (mode === "water") emoji = "💧";
+  noStroke();
+  textSize(barHeight * 1.2);
+  textAlign(CENTER, CENTER);
+  text(emoji, x + progression, y + barHeight / 2);
+
+  // (Opcional) Se quiser remover o texto, não desenhe nada aqui.
+  // Se quiser mostrar o valor, pode adicionar um texto pequeno acima ou abaixo da barra.
 }
 
 function drawSingAnimation() {
