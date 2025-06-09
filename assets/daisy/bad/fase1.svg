@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Camada_1" data-name="Camada 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 150 100">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#Gradiente_sem_nome_66);
+      }
+
+      .cls-1, .cls-2 {
+        stroke: #1d1d1b;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.42px;
+      }
+
+      .cls-2, .cls-3 {
+        fill: #8da627;
+      }
+    </style>
+    <linearGradient id="Gradiente_sem_nome_66" data-name="Gradiente sem nome 66" x1="76.26" y1="60.78" x2="115.1" y2="60.78" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8da626"/>
+      <stop offset=".26" stop-color="#8fa725"/>
+      <stop offset=".42" stop-color="#98ac23"/>
+      <stop offset=".56" stop-color="#a7b520"/>
+      <stop offset=".68" stop-color="#bbc21c"/>
+      <stop offset=".8" stop-color="#d6d317"/>
+      <stop offset=".9" stop-color="#f7e710"/>
+      <stop offset=".92" stop-color="#fcea10"/>
+    </linearGradient>
+  </defs>
+  <path class="cls-1" d="M115.1,69.31s-13.55-13.92-23.22-16.59c-9.66-2.67-19.39.67-14.15,6.01,5.24,5.34,8.66,13.11,37.37,10.59Z"/>
+  <polygon class="cls-3" points="70.7 100 80.26 100 79.6 0 71.08 0 70.7 100"/>
+  <path class="cls-2" d="M70.62,100c.07-30.28.15-64.94.26-100"/>
+  <path class="cls-2" d="M79.82,0c.2,35.02.4,69.67.56,100"/>
+</svg>

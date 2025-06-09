@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Camada_1" data-name="Camada 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 100">
+  <defs>
+    <style>
+      .cls-1, .cls-2 {
+        fill: #5c6924;
+      }
+
+      .cls-1, .cls-2, .cls-3 {
+        stroke: #1d1d1b;
+        stroke-width: 1.42px;
+      }
+
+      .cls-1, .cls-3 {
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .cls-2 {
+        stroke-miterlimit: 10;
+      }
+
+      .cls-3 {
+        fill: #8da627;
+      }
+    </style>
+  </defs>
+  <path class="cls-1" d="M72.08,53.78s2.25.86,6.39,8.3c4.14,7.44,19.85,32.85,26.04,29.83,0,0-7.55-4.83-10.94-16.87-3.39-12.04-7.43-22.1-21.5-21.26Z"/>
+  <polygon class="cls-2" points="70.94 100 79.77 100 79.03 0 71.44 0 70.94 100"/>
+  <path class="cls-3" d="M79.22,0c.2,31.22.4,65.78.6,100"/>
+  <path class="cls-3" d="M70.89,100c.11-34.18.23-68.73.38-99.94"/>
+</svg>

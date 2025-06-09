@@ -122,6 +122,13 @@ let backgroundMusic;
 let levelUpSound;
 let completedSound;
 
+let flowerType = "sunflower"; // sunflower ou daisy
+
+// Carregar do localStorage se existir
+if (localStorage.getItem('flowerType')) {
+  flowerType = localStorage.getItem('flowerType');
+}
+
 function preload() {
   // Load background music
   backgroundMusic = loadSound('assets/sound/background.mp3', 
@@ -140,7 +147,10 @@ function preload() {
     () => console.log("Task completed sound loaded successfully"),
     () => console.error("Failed to load task completed sound")
   );
-  
+
+  // Usa flowerType para definir o diretório base
+  let flowerDir = `assets/${flowerType}`;
+
   vetoresFases = [];
   for (let fase = 0; fase < maxFases; fase++) {
     let vetoresParaFase = [];
@@ -149,7 +159,7 @@ function preload() {
       // Não adiciona nenhuma imagem
     } else {
       for (let i = 0; i < 5; i++) {
-        let caminho = `assets/live/fase${fase - 1}/${i}.svg`; // -1 porque assets começam na antiga fase 1
+        let caminho = `${flowerDir}/live/fase${fase - 1}/${i}.svg`;
         let img = loadImage(
           caminho,
           () => console.log(`Imagem carregada: ${caminho}`),
@@ -168,7 +178,7 @@ function preload() {
     if (fase === 0) {
       window.vetoresFasesBad.push([]); // vazio
     } else {
-      let caminhoBad = `assets/bad/fase${fase - 1}.svg`;
+      let caminhoBad = `${flowerDir}/bad/fase${fase - 1}.svg`;
       let imgBad = loadImage(
         caminhoBad,
         () => console.log(`Imagem BAD carregada: ${caminhoBad}`),
@@ -182,7 +192,7 @@ function preload() {
     if (fase === 0) {
       window.vetoresFasesDead.push([]); // vazio
     } else {
-      let caminhoDead = `assets/dead/fase${fase - 1}.svg`;
+      let caminhoDead = `${flowerDir}/dead/fase${fase - 1}.svg`;
       let imgDead = loadImage(
         caminhoDead,
         () => console.log(`Imagem DEAD carregada: ${caminhoDead}`),
@@ -306,6 +316,10 @@ function inicializarDados() {
   maxFases = 6; // <-- Corrige para 6 fases (0 a 5)
   planta = [];
 
+  // Determina flowerType pela seed (par = sunflower, ímpar = daisy), mantendo 50% de chance
+  flowerType = (seed % 2 === 0) ? "sunflower" : "daisy";
+  localStorage.setItem('flowerType', flowerType);
+
   localStorage.setItem('plantaSeed', seed);
   localStorage.setItem('faseAtual', faseAtual);
   localStorage.setItem('maxFases', maxFases); // <-- Corrige para 6 fases
@@ -391,10 +405,6 @@ function draw() {
       let segundos = Math.ceil(tempoRestante / 1000);
       let min = Math.floor(segundos / 60);
       let sec = segundos % 60;
-      // Mostra na consola
-      console.log(
-        `Tempo até a planta ficar estragada: ${min}:${sec.toString().padStart(2, '0')}`
-      );
     }
   } else if (isBadState && !isDeadState && badSince) {
     let tempoRestante = TEMPO_BAD_PARA_DEAD - (Date.now() - badSince);
@@ -402,9 +412,6 @@ function draw() {
       let segundos = Math.ceil(tempoRestante / 1000);
       let min = Math.floor(segundos / 60);
       let sec = segundos % 60;
-      console.log(
-        `Tempo até a planta morrer: ${min}:${sec.toString().padStart(2, '0')}`
-      );
     }
   }
 
@@ -682,9 +689,6 @@ for (let i = 0; i < planta.length; i++) {
     fill(220);
     text("A tua planta cresceu para a próxima fase!", width / 2, height / 2 + 65);
   }
-  
-
-  console.log(progress.sunlight)
 }
 
 function mousePressed() {
@@ -713,13 +717,14 @@ function mousePressed() {
       localStorage.setItem('planta', JSON.stringify([]));
 
       // Garante que vetoresFases está correto (fase 0 vazia)
+      let flowerDir = `assets/${flowerType}`;
       vetoresFases = [];
       for (let fase = 0; fase < maxFases; fase++) {
         let vetoresParaFase = [];
         // Fase 0 deve ser SEM IMAGEM
         if (fase !== 0) {
           for (let i = 0; i < 5; i++) {
-            let caminho = `assets/live/fase${fase}/${i}.svg`;
+            let caminho = `${flowerDir}/live/fase${fase}/${i}.svg`;
             let img = loadImage(
               caminho,
               () => {},
@@ -820,11 +825,12 @@ function keyPressed() {
       isBadState = false;
       badSince = null;
       localStorage.removeItem('badSince');
+      let flowerDir = `assets/${flowerType}`;
       vetoresFases = [];
       for (let fase = 0; fase < maxFases; fase++) {
         let vetoresParaFase = [];
         for (let i = 0; i < 5; i++) {
-          let caminho = `assets/live/fase${fase}/${i}.svg`;
+          let caminho = `${flowerDir}/live/fase${fase}/${i}.svg`;
           let img = loadImage(
             caminho,
             () => {},
@@ -845,6 +851,10 @@ function keyPressed() {
     } else {
       console.log("Você já atingiu o número máximo de fases.");
     }
+  }
+
+    if (key === 'h' || key === 'H') {
+    setFlorMax();
   }
 }
 
@@ -1438,4 +1448,16 @@ function startBackgroundMusic() {
   if (backgroundMusic && !backgroundMusic.isPlaying()) {
     backgroundMusic.play();
   }
+}
+
+// Função para colocar a flor no nível máximo (chamar na consola: setFlorMax())
+function setFlorMax() {
+  faseAtual = maxFases - 1;
+  localStorage.setItem('faseAtual', faseAtual);
+  gerarPlanta();
+  completionMessage = "A flor está agora no nível máximo!";
+  // Atualiza o progresso das tarefas para 100%
+  progress = { sing: 100, sunlight: 100, water: 100 };
+  displayedProgress = { sing: 100, sunlight: 100, water: 100 };
+  saveProgressToCache();
 }
