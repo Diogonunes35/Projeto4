@@ -748,24 +748,22 @@ function mousePressed() {
   let labels = ["sing", "sunlight", "water"];
   let diameter = min(width, 320) / 3.2;
   let spacing = width / (labels.length + 1);
-  let btnY = height - diameter - 30;
+  let btnY = height - diameter + 20;
   for (let i = 0; i < labels.length; i++) {
     let btnX = spacing * (i + 1);
     let dx = mouseX - btnX;
     let dy = mouseY - btnY;
     if (menu == 0 && !isDeadState) {
+      console.log('Clique detetado no botão:', labels[i]);
       if (dx * dx + dy * dy < (diameter / 2) * (diameter / 2)) {
+        console.log('Botão clicado:', labels[i], 'Menu antes:', menu);
         mode = labels[i];
         if (labels[i] === "sing") menu = 1;
         if (labels[i] === "sunlight") menu = 2;
-        if (labels[i] === "water") {
-          menu = 3;
-          // Removido: progresso instantâneo ao clicar em "water"
-          // progress.water = 100;
-          // displayedProgress.water = 100;
-          // saveProgressToCache();
-        }
+        if (labels[i] === "water") menu = 3;
         completionMessage = "";
+        console.log('Menu depois:', menu);
+        break; // <-- SAI DO CICLO ASSIM QUE UM BOTÃO É CLICADO
       }
     }
   }
