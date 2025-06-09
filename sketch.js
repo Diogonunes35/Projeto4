@@ -694,7 +694,7 @@ for (let i = 0; i < planta.length; i++) {
 function mousePressed() {
   userStartAudio();
   startBackgroundMusic();
-  
+
   // If the plant is dead and the button is visible, reset everything
   if (showReviveButton && isDeadState) {
     if (
@@ -760,10 +760,10 @@ function mousePressed() {
         if (labels[i] === "sunlight") menu = 2;
         if (labels[i] === "water") {
           menu = 3;
-          // DEBUG: Complete water task instantly
-          progress.water = 100;
-          displayedProgress.water = 100;
-          saveProgressToCache();
+          // Removido: progresso instantâneo ao clicar em "water"
+          // progress.water = 100;
+          // displayedProgress.water = 100;
+          // saveProgressToCache();
         }
         completionMessage = "";
       }
@@ -771,10 +771,10 @@ function mousePressed() {
   }
 
   if (dist(mouseX, mouseY, 40, 40) < 22) {
-  menu = 0;
-  mode = "none";
-  completionMessage = "";
-}
+    menu = 0;
+    mode = "none";
+    completionMessage = "";
+  }
 }
 
 function limparLocalStorage() {
@@ -1092,13 +1092,18 @@ function updateProgress() {
     }
   }
 
+  // Sensibilidade mais difícil:
+  const MIC_THRESHOLD = 0.05;      // Antes: 0.01 (agora precisa falar/cantar mais alto)
+  const CAMERA_BRIGHTNESS = 140;   // Antes: 100 (agora precisa de mais luz)
+  const TILT_THRESHOLD = 30;       // Antes: 20 (agora precisa inclinar mais)
+
   // Só atualiza a tarefa ativa
   if (progress[mode] < 100) {
     let previousProgress = progress[mode];
     
     if (mode === "sing") {
       let level = mic.getLevel();
-      if (level > 0.01) {
+      if (level > MIC_THRESHOLD) {
         progress.sing = constrain(progress.sing + progressRate, 0, 100);
         lastTaskTime.sing = Date.now();
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
@@ -1130,7 +1135,7 @@ function updateProgress() {
         avg += (capture.pixels[i] + capture.pixels[i + 1] + capture.pixels[i + 2]) / 3;
       }
       avg /= (capture.pixels.length / 4);
-      if (avg > 100) {
+      if (avg > CAMERA_BRIGHTNESS) {
         progress.sunlight = constrain(progress.sunlight + progressRate, 0, 100);
         lastTaskTime.sunlight = Date.now();
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
@@ -1153,7 +1158,7 @@ function updateProgress() {
         }
       }
     } else if (mode === "water") {
-      if (abs(gamma) > 20) {  // Check if device is tilted enough
+      if (abs(gamma) > TILT_THRESHOLD) {  // Check if device is tilted enough
         progress.water = constrain(progress.water + progressRate, 0, 100);
         lastTaskTime.water = Date.now();
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
