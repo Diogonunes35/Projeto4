@@ -87,8 +87,24 @@ let lastTaskTime = {
   sunlight: Date.now(),
   water: Date.now()
 };
-const TASK_RESET_INTERVAL = 20 * 60 * 60 * 1000; // 20 HORAS
-const TASK_RESET_TAXA = 100 / (TASK_RESET_INTERVAL / 1000); // percentagem por segundo
+
+// Intervalos personalizados baseados na seed
+let taskResetIntervals = {
+  sing: 20 * 60 * 60 * 1000,    // Valor padrão: 20 horas
+  sunlight: 20 * 60 * 60 * 1000, // Valor padrão: 20 horas
+  water: 20 * 60 * 60 * 1000     // Valor padrão: 20 horas
+};
+
+// Taxas de reset personalizadas (calculadas depois)
+let taskResetRates = {
+  sing: 0,
+  sunlight: 0,
+  water: 0
+};
+
+// Constantes para os limites de horas
+const MIN_HOURS = 10;
+const MAX_HOURS = 30;
 
 // Carregar do localStorage se existir
 if (localStorage.getItem('lastTaskTime')) {
@@ -222,6 +238,19 @@ function setup() {
       faseAtual = parseInt(localStorage.getItem('faseAtual')) || 0;
       maxFases = parseInt(localStorage.getItem('maxFases')) || 5;
 
+      // Carrega intervalos personalizados do localStorage
+      if (localStorage.getItem('taskResetIntervals')) {
+        taskResetIntervals = JSON.parse(localStorage.getItem('taskResetIntervals'));
+        
+        // Recalcula as taxas de reset
+        for (let task in taskResetIntervals) {
+          taskResetRates[task] = 100 / (taskResetIntervals[task] / 1000);
+        }
+      } else {
+        // Se não existir, configura com base na seed
+        setupTaskIntervals(seed);
+      }
+
       // Recria o vetor planta com base nos índices salvos
       let plantaIndices = JSON.parse(localStorage.getItem('planta')) || [];
       planta = plantaIndices.map((index, i) => {
@@ -319,11 +348,40 @@ function inicializarDados() {
   // Determina flowerType pela seed (par = sunflower, ímpar = daisy), mantendo 50% de chance
   flowerType = (seed % 2 === 0) ? "sunflower" : "daisy";
   localStorage.setItem('flowerType', flowerType);
+  
+  // Configura intervalos personalizados baseados na seed
+  setupTaskIntervals(seed);
 
   localStorage.setItem('plantaSeed', seed);
   localStorage.setItem('faseAtual', faseAtual);
   localStorage.setItem('maxFases', maxFases); // <-- Corrige para 6 fases
   localStorage.setItem('planta', JSON.stringify([])); // Salva um vetor vazio
+  localStorage.setItem('taskResetIntervals', JSON.stringify(taskResetIntervals));
+}
+
+// Nova função para configurar intervalos baseados na seed
+function setupTaskIntervals(seedValue) {
+  // Usa diferentes partes da seed para cada tarefa
+  let seedPart1 = parseInt(seedValue.toString().substring(0, 2)) % 21;
+  let seedPart2 = parseInt(seedValue.toString().substring(2, 4)) % 21;
+  let seedPart3 = parseInt(seedValue.toString().substring(4, 6)) % 21;
+  
+  // Calcula horas entre MIN_HOURS e MAX_HOURS
+  let singHours = MIN_HOURS + seedPart1;
+  let sunlightHours = MIN_HOURS + seedPart2;
+  let waterHours = MIN_HOURS + seedPart3;
+  
+  // Converte horas para milissegundos
+  taskResetIntervals.sing = singHours * 60 * 60 * 1000;
+  taskResetIntervals.sunlight = sunlightHours * 60 * 60 * 1000;
+  taskResetIntervals.water = waterHours * 60 * 60 * 1000;
+  
+  // Calcula as taxas de reset (percentagem por segundo)
+  taskResetRates.sing = 100 / (taskResetIntervals.sing / 1000);
+  taskResetRates.sunlight = 100 / (taskResetIntervals.sunlight / 1000);
+  taskResetRates.water = 100 / (taskResetIntervals.water / 1000);
+  
+  console.log(`Task intervals set - Sing: ${singHours}h, Sunlight: ${sunlightHours}h, Water: ${waterHours}h`);
 }
 
 // --- 1. Corrigir gerarPlanta para mostrar todas as partes até à faseAtual (incluindo a última fase) ---
@@ -781,10 +839,16 @@ function limparLocalStorage() {
 }
 
 function keyPressed() {
+  if (key === 'j' || key === 'J') {
+    showTaskIntervals();
+    return; // Return to prevent other key handlers from executing
+  }
+  
   if (key === 'r' || key === 'R') {
     // Limpa localStorage
     limparLocalStorage();
     localStorage.removeItem('plantaCriada');
+    localStorage.removeItem('taskResetIntervals');
 
     // Reseta variáveis principais
     lastCareTime = Date.now();
@@ -806,8 +870,13 @@ function keyPressed() {
       sunlight: Date.now(),
       water: Date.now()
     };
+    
+    // Configura novos intervalos baseados na nova seed
+    setupTaskIntervals(seed);
+    
     localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
     localStorage.setItem('lastCareTime', lastCareTime);
+    localStorage.setItem('taskResetIntervals', JSON.stringify(taskResetIntervals));
     faseAtual = 0; // Planta volta a não aparecer
     planta = [];
     // NÃO chamar gerarPlanta() aqui!
@@ -1083,7 +1152,8 @@ function updateProgress() {
     let now = Date.now();
     if (now - lastDecayTime >= 1000) { // a cada segundo
       for (let key in progress) {
-        progress[key] = constrain(progress[key] - TASK_RESET_TAXA, 0, 100);
+        // Usa a taxa específica para cada tarefa
+        progress[key] = constrain(progress[key] - taskResetRates[key], 0, 100);
       }
       lastDecayTime = now;
       changed = true;
@@ -1204,7 +1274,7 @@ function updateProgress() {
 
   // NOVO: Só pode crescer se já passaram 24h desde o último crescimento
   let lastGrowthTime = parseInt(localStorage.getItem('lastGrowthTime')) || 0;
-  let canGrow = (Date.now() - lastGrowthTime) > TASK_RESET_INTERVAL;
+  let canGrow = (Date.now() - lastGrowthTime) > (24 * 60 * 60 * 1000); // 24 hours in milliseconds
 
   // NOVO: Se todas as tarefas forem concluídas enquanto está bad, volta ao normal, mas não sobe de fase
   if (
@@ -1463,4 +1533,49 @@ function setFlorMax() {
   progress = { sing: 100, sunlight: 100, water: 100 };
   displayedProgress = { sing: 100, sunlight: 100, water: 100 };
   saveProgressToCache();
+}
+
+// Add this new function to show task intervals and remaining time
+function showTaskIntervals() {
+  console.log("=== TASK INTERVALS ===");
+  
+  // Show the configured intervals for each task
+  console.log("CONFIGURED INTERVALS:");
+  for (let task in taskResetIntervals) {
+    let hours = taskResetIntervals[task] / (60 * 60 * 1000);
+    console.log(`${capitalize(task)}: ${hours.toFixed(1)} hours (${taskResetIntervals[task]} ms)`);
+  }
+  
+  // Show the remaining time for each task based on current progress
+  console.log("\nREMAINING TIME:");
+  let now = Date.now();
+  for (let task in progress) {
+    // Calculate time remaining based on current progress percentage
+    let currentProgress = progress[task];
+    let totalInterval = taskResetIntervals[task];
+    
+    // Calculate decay rate (% per millisecond)
+    let decayRate = taskResetRates[task] / 1000;
+    
+    // Calculate milliseconds until zero (current progress ÷ decay rate)
+    let msUntilZero = currentProgress / decayRate;
+    
+    // Convert to hours, minutes, seconds
+    let remainingHours = Math.floor(msUntilZero / (60 * 60 * 1000));
+    let remainingMinutes = Math.floor((msUntilZero % (60 * 60 * 1000)) / (60 * 1000));
+    let remainingSeconds = Math.floor((msUntilZero % (60 * 1000)) / 1000);
+    
+    // Calculate percentage of time remaining
+    let percentRemaining = (msUntilZero / totalInterval) * 100;
+    
+    console.log(`${capitalize(task)}: ${remainingHours}h ${remainingMinutes}m ${remainingSeconds}s (${currentProgress.toFixed(1)}% remaining)`);
+  }
+  
+  // Show current progress values
+  console.log("\nCURRENT PROGRESS:");
+  for (let task in progress) {
+    console.log(`${capitalize(task)}: ${progress[task].toFixed(1)}%`);
+  }
+  
+  console.log("=====================");
 }
