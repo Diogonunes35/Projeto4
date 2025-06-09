@@ -44,6 +44,7 @@ let starPositions = [];
 
 let displayWeather = null;
 
+
 //tarefas
 let mic, capture;
 let gamma = 0;
@@ -526,74 +527,74 @@ for (let i = 0; i < planta.length; i++) {
   if (menu == 0){
     if(!isDeadState){
       updateProgress();
-    drawButtons();
-    // Desenha barra de progresso
-  rectMode(CORNER);
+      drawButtons();
+      // Desenha barra de progresso
+      rectMode(CORNER);
 
-  // Ajusta o tamanho da barra de progresso conforme o dispositivo
-  let barraLargura, barraAltura, barraX, barraY;
-  if (windowWidth > 768) {
-    // PC
-    barraLargura = 500;
-    barraAltura = 50;
-    barraX = width / 2 - 250;
-    barraY = 60;
-  } else {
-    // Telemóvel
-    barraLargura = 220;
-    barraAltura = 30;
-    barraX = width / 2 - barraLargura / 2;
-    barraY = 60;
-  }
+      // Ajusta o tamanho da barra de progresso conforme o dispositivo
+      let barraLargura, barraAltura, barraX, barraY;
+      if (windowWidth > 768) {
+        // PC
+        barraLargura = 500;
+        barraAltura = 50;
+        barraX = width / 2 - 250;
+        barraY = 60;
+      } else {
+        // Telemóvel
+        barraLargura = 220;
+        barraAltura = 30;
+        barraX = width / 2 - barraLargura / 2;
+        barraY = 60;
+      }
 
-  // Modern rounded progress bar with shadow and emoji
-  let maxFaseVisivel = maxFases - 1; // Agora mostra até fase 5 de 5
-  let progression = map(faseAtual, 0, maxFaseVisivel, 0, barraLargura);
-  if (faseAtual >= maxFaseVisivel) progression = barraLargura;
+      // Modern rounded progress bar with shadow and emoji
+      let maxFaseVisivel = maxFases - 1; // Agora mostra até fase 5 de 5
+      let progression = map(faseAtual, 0, maxFaseVisivel, 0, barraLargura);
+      if (faseAtual >= maxFaseVisivel) progression = barraLargura;
 
-  // Shadow
-  push();
-  noStroke();
-  fill(0, 40);
-  rect(barraX, barraY + 6, barraLargura, barraAltura, barraAltura / 2);
-  pop();
+      // Shadow
+      push();
+      noStroke();
+      fill(0, 40);
+      rect(barraX, barraY + 6, barraLargura, barraAltura, barraAltura / 2);
+      pop();
 
-  // Background bar
-  noStroke();
-  fill(240);
-  rect(barraX, barraY, barraLargura, barraAltura, barraAltura / 2);
+      // Background bar
+      noStroke();
+      fill(240);
+      rect(barraX, barraY, barraLargura, barraAltura, barraAltura / 2);
 
-  // Progress bar (gradient green)
-  let grad = drawingContext.createLinearGradient(barraX, 0, barraX + progression, 0);
-  grad.addColorStop(0, '#43e97b');
-  grad.addColorStop(1, '#38f9d7');
-  drawingContext.save();
-  drawingContext.fillStyle = grad;
-  rect(barraX, barraY, progression, barraAltura, barraAltura / 2);
-  drawingContext.restore();
-  noStroke();
+      // Progress bar (gradient green)
+      let grad = drawingContext.createLinearGradient(barraX, 0, barraX + progression, 0);
+      grad.addColorStop(0, '#43e97b');
+      grad.addColorStop(1, '#38f9d7');
+      drawingContext.save();
+      drawingContext.fillStyle = grad;
+      rect(barraX, barraY, progression, barraAltura, barraAltura / 2);
+      drawingContext.restore();
+      noStroke();
 
-  // Border
-  stroke(80, 180, 120, 120);
-  strokeWeight(2);
-  noFill();
-  rect(barraX, barraY, barraLargura, barraAltura, barraAltura / 2);
+      // Border
+      stroke(80, 180, 120, 120);
+      strokeWeight(2);
+      noFill();
+      rect(barraX, barraY, barraLargura, barraAltura, barraAltura / 2);
 
-  // Plant emoji at the end of the bar
-  noStroke();
-  textSize(barraAltura * 1.2);
-  textAlign(CENTER, CENTER);
-  text("🪴", barraX + progression, barraY + barraAltura / 2);
+      // Plant emoji at the end of the bar
+      noStroke();
+      textSize(barraAltura * 1.2);
+      textAlign(CENTER, CENTER);
+      text("🪴", barraX + progression, barraY + barraAltura / 2);
 
-  // Text label
-  fill(0, 120);
-  textSize(windowWidth > 768 ? 22 : 14);
-  if (faseAtual >= maxFaseVisivel) {
-    text(`Máximo`, width / 2, barraY + barraAltura / 2);
-  } else {
-    text(`Fase: ${faseAtual} de ${maxFaseVisivel}`, width / 2, barraY + barraAltura / 2);
-  }
-  }
+      // Text label
+      fill(0, 120);
+      textSize(windowWidth > 768 ? 22 : 14);
+      if (faseAtual >= maxFaseVisivel) {
+        text(`Máximo`, width / 2, barraY + barraAltura / 2);
+      } else {
+        text(`Fase: ${faseAtual} de ${maxFaseVisivel}`, width / 2, barraY + barraAltura / 2);
+      }
+    }
   }
 
   if(menu == 1){
@@ -687,56 +688,59 @@ for (let i = 0; i < planta.length; i++) {
   console.log(progress.sunlight)
 }
 
+// Add this near your other global variables at the top:
+let soundMode = 2; // 0 = all on, 1 = music off, 2 = all muted
+
 function mousePressed() {
   userStartAudio();
-  startBackgroundMusic();
+  // Only start music if soundMode is 0 (all on)
+  if (soundMode === 0) {
+    startBackgroundMusic();
+  }
   
-  // If the plant is dead and the button is visible, reset everything
-  if (showReviveButton && isDeadState) {
-    if (
-      mouseX > width / 2 - 110 &&
-      mouseX < width / 2 + 110 &&
-      mouseY > height / 2 - 30 &&
-      mouseY < height / 2 + 30
-    ) {
-      showReviveButton = false;
-      isDeadState = false;
-      isBadState = false;
-      badSince = null;
-      limparLocalStorage();
-      inicializarDados();
-      faseAtual = 0;
-      localStorage.setItem('faseAtual', faseAtual);
-
-      // Limpa a planta e não gera nada
-      planta = [];
-      localStorage.setItem('planta', JSON.stringify([]));
-
-      // Garante que vetoresFases está correto (fase 0 vazia)
-      vetoresFases = [];
-      for (let fase = 0; fase < maxFases; fase++) {
-        let vetoresParaFase = [];
-        // Fase 0 deve ser SEM IMAGEM
-        if (fase !== 0) {
-          for (let i = 0; i < 5; i++) {
-            let caminho = `assets/live/fase${fase}/${i}.svg`;
-            let img = loadImage(
-              caminho,
-              () => {},
-              () => {}
-            );
-            vetoresParaFase.push(img);
-          }
+  // --- SOUND BUTTON CLICK HANDLER (main menu only) ---
+  if (menu == 0 && !isDeadState) {
+    let btnX = 40, btnY = 40, btnR = 44;
+    if (dist(mouseX, mouseY, btnX, btnY) < btnR / 2) {
+      soundMode = (soundMode + 1) % 3;
+      // Set volumes accordingly
+      if (soundMode === 0) {
+        if (backgroundMusic) backgroundMusic.setVolume(0.5);
+        if (levelUpSound) levelUpSound.setVolume(1);
+        if (completedSound) completedSound.setVolume(1);
+        // Start music if not already playing
+        if (backgroundMusic && !backgroundMusic.isPlaying()) {
+          backgroundMusic.play();
         }
-        vetoresFases.push(vetoresParaFase);
+      } else if (soundMode === 1) {
+        if (backgroundMusic) backgroundMusic.setVolume(0);
+        if (levelUpSound) levelUpSound.setVolume(1);
+        if (completedSound) completedSound.setVolume(1);
+        // Pause music if playing
+        if (backgroundMusic && backgroundMusic.isPlaying()) {
+          backgroundMusic.pause();
+        }
+      } else if (soundMode === 2) {
+        if (backgroundMusic) backgroundMusic.setVolume(0);
+        if (levelUpSound) levelUpSound.setVolume(0);
+        if (completedSound) completedSound.setVolume(0);
+        // Pause music if playing
+        if (backgroundMusic && backgroundMusic.isPlaying()) {
+          backgroundMusic.pause();
+        }
       }
-      // NÃO chama gerarPlanta() aqui!
-      lastCareTime = Date.now();
-      localStorage.setItem('lastCareTime', lastCareTime);
-      localStorage.removeItem('badSince');
+      return; // Prevents triggering other buttons
+    }
 
-      // Faz refresh à página para garantir reset total
-      window.location.reload();
+    // --- INVENTORY BUTTON CLICK HANDLER (top right) ---
+    let invBtnX = width - 40;
+    let invBtnY = 40;
+    let invBtnR = 44;
+    if (dist(mouseX, mouseY, invBtnX, invBtnY) < invBtnR / 2) {
+      // For now, just log to console
+      console.log("Inventory button clicked!");
+      // Later: open inventory popup here
+      return;
     }
   }
 
@@ -766,10 +770,10 @@ function mousePressed() {
   }
 
   if (dist(mouseX, mouseY, 40, 40) < 22) {
-  menu = 0;
-  mode = "none";
-  completionMessage = "";
-}
+    menu = 0;
+    mode = "none";
+    completionMessage = "";
+  }
 }
 
 function limparLocalStorage() {
@@ -1047,6 +1051,54 @@ function drawButtons() {
 
     fill(255); // Reset fill
   }
+
+  // --- SOUND BUTTON (top left, styled like other buttons) ---
+  let btnX = 40, btnY = 40, btnR = 44;
+  // Shadow
+  push();
+  noStroke();
+  fill(0, 40);
+  ellipse(btnX, btnY + 7, btnR * 1.08);
+  pop();
+  // Button
+  push();
+  stroke(180);
+  strokeWeight(2.5);
+  fill(255, 240); // White, slightly transparent
+  ellipse(btnX, btnY, btnR, btnR);
+  // Icon
+  textAlign(CENTER, CENTER);
+  textSize(25);
+  fill(60); // Dark icon for contrast
+  let icon = "🎵";
+  if (soundMode === 1) icon = "🔈";
+  if (soundMode === 2) icon = "🔇";
+  text(icon, btnX, btnY + 1);
+  pop();
+
+  // --- INVENTORY BUTTON (top right, styled like sound button) ---
+  let invBtnR = btnR;
+  let invBtnX = width - 40;
+  let invBtnY = 40;
+  // Shadow
+  push();
+  noStroke();
+  fill(0, 40);
+  ellipse(invBtnX, invBtnY + 7, invBtnR * 1.08);
+  pop();
+  // Button
+  push();
+  stroke(180);
+  strokeWeight(2.5);
+  fill(255, 240); // White, slightly transparent
+  ellipse(invBtnX, invBtnY, invBtnR, invBtnR);
+  // Icon (choose your favorite inventory emoji)
+  textAlign(CENTER, CENTER);
+  textSize(25);
+  fill(60);
+  let invIcon = "📦"; // "🏺" caso queira trocar
+  text(invIcon, invBtnX, invBtnY + 1);
+  pop();
 }
 
 // Salva o progresso no localStorage sempre que houver alteração
@@ -1283,7 +1335,7 @@ function updateProgress() {
         
         // Make sure to save the current progress to cache
         saveProgressToCache();
-      }, 1500);
+      }, 5000); 
     }
   }
 
@@ -1435,7 +1487,9 @@ function resetWaterProgress() {
 }
 
 function startBackgroundMusic() {
-  if (backgroundMusic && !backgroundMusic.isPlaying()) {
+  // Only play if soundMode is 0 (all on)
+  if (backgroundMusic && !backgroundMusic.isPlaying() && soundMode === 0) {
     backgroundMusic.play();
   }
 }
+
