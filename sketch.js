@@ -82,6 +82,9 @@ let menu = 0;
 const TEMPO_NORMAL_PARA_BAD = 2 * 24 * 60 *60 * 1000; // 2 DIAS
 const TEMPO_BAD_PARA_DEAD = 1 * 24 * 60 * 60 * 1000;   // 1 DIA
 
+//vaso selecionado
+let vasoSelecionado = 1; // Começa sempre com vaso1
+
 // NOVAS VARIÁVEIS PARA CONTROLO DE TAREFAS DIÁRIAS
 let lastTaskTime = {
   sing: Date.now(),
@@ -164,6 +167,14 @@ function preload() {
     () => console.log("Task completed sound loaded successfully"),
     () => console.error("Failed to load task completed sound")
   );
+
+  // Busca o vaso a ser usado no localStorage
+  if (localStorage.getItem('vasoSelecionado')) {
+  vasoSelecionado = parseInt(localStorage.getItem('vasoSelecionado'));
+  } else {
+  vasoSelecionado = 1;
+  localStorage.setItem('vasoSelecionado', vasoSelecionado);
+  }
 
   // Usa flowerType para definir o diretório base
   let flowerDir = `assets/${flowerType}`;
@@ -408,6 +419,12 @@ function gerarPlanta() {
     // Se for fase 0, não faz nada (planta fica vazia)
   }
 
+  // Ao gerar planta nova, se não houver vasoSelecionado, começa com vaso1
+  if (!localStorage.getItem('vasoSelecionado')) {
+    vasoSelecionado = 1;
+    localStorage.setItem('vasoSelecionado', vasoSelecionado);
+  }
+
   console.log("Planta gerada:", planta);
 
   localStorage.setItem('planta', JSON.stringify(plantaIndices));
@@ -566,13 +583,21 @@ imageMode(CENTER);
 
 // Desenhar o vaso SVG debaixo da planta
 if (vasoImg && vasoImg.width > 0 && vasoImg.height > 0) {
+  let vasoImg;
+if (!window["vasoImgs"]) window["vasoImgs"] = [];
+if (!window["vasoImgs"][vasoSelecionado]) {
+  window["vasoImgs"][vasoSelecionado] = loadImage(`assets/pots/vaso${vasoSelecionado}.svg`);
+}
+vasoImg = window["vasoImgs"][vasoSelecionado];
+
+if (vasoImg && vasoImg.width > 0 && vasoImg.height > 0) {
   let vasoLargura = larguraDesejada * 1.5;
   let vasoAltura = alturaDesejada * 1.1;
   let vasoX = baseX;
-  // Se for telemóvel, coloca o vaso mais abaixo (-15), senão (-20)
   let vasoY = baseY + vasoAltura - (windowWidth > 768 ? 20 : 15);
   imageMode(CENTER);
   image(vasoImg, vasoX, vasoY, vasoLargura, vasoAltura);
+}
 }
 
 // Desenhar a planta
@@ -908,6 +933,18 @@ for (let i = 0; i < planta.length; i++) {
           textSize(16);
           text(`Vaso ${idx}`, x, y);
           pop();
+        }
+      }
+    }
+
+    // Após desenhar o grid, deteta clique para selecionar vaso
+    if (mouseIsPressed && hoveredVaso && menu == 4) {
+      if (vasoSelecionado !== hoveredVaso.idx) {
+        vasoSelecionado = hoveredVaso.idx;
+        localStorage.setItem('vasoSelecionado', vasoSelecionado);
+        // Atualiza vasoImg imediatamente
+        if (!window["vasoImgs"][vasoSelecionado]) {
+          window["vasoImgs"][vasoSelecionado] = loadImage(`assets/pots/vaso${vasoSelecionado}.svg`);
         }
       }
     }
