@@ -593,71 +593,113 @@ for (let i = 0; i < planta.length; i++) {
     if(!isDeadState){
       updateProgress();
       drawButtons();
-      // Desenha barra de progresso
-      rectMode(CORNER);
 
-      // Ajusta o tamanho da barra de progresso conforme o dispositivo
-      let barraLargura, barraAltura, barraX, barraY;
-      if (windowWidth > 768) {
-        // PC
-        barraLargura = 500;
-        barraAltura = 50;
-        barraX = width / 2 - 250;
-        barraY = 60;
+      // --- Barra de fase ENTRE os botões de inventário e mute no topo em telemóvel ---
+      if (windowWidth <= 768) {
+        // Topo, entre os dois botões (mute e inventário)
+        let barraLargura = width - 160; // <-- Reduzido de 120 para 160 para ficar menos comprida
+        let barraAltura = 28;
+        let barraX = 80; // <-- Ajustado para centrar a barra
+        let barraY = 40 - barraAltura / 2;
+
+        // Modern rounded progress bar with shadow and emoji
+        let maxFaseVisivel = maxFases - 1;
+        let progression = map(faseAtual, 0, maxFaseVisivel, 0, barraLargura);
+        if (faseAtual >= maxFaseVisivel) progression = barraLargura;
+
+        // Shadow
+        push();
+        noStroke();
+        fill(0, 40);
+        rect(barraX, barraY + 5, barraLargura, barraAltura, barraAltura / 2);
+        pop();
+
+        // Background bar
+        noStroke();
+        fill(240);
+        rect(barraX, barraY, barraLargura, barraAltura, barraAltura / 2);
+
+        // Progress bar (gradient green)
+        let grad = drawingContext.createLinearGradient(barraX, 0, barraX + progression, 0);
+        grad.addColorStop(0, '#43e97b');
+        grad.addColorStop(1, '#38f9d7');
+        drawingContext.save();
+        drawingContext.fillStyle = grad;
+        rect(barraX, barraY, progression, barraAltura, barraAltura / 2);
+        drawingContext.restore();
+
+        // Border
+        stroke(80, 180, 120, 120);
+        strokeWeight(2);
+        noFill();
+        rect(barraX, barraY, barraLargura, barraAltura, barraAltura / 2);
+
+        // Plant emoji at the end of the bar
+        noStroke();
+        textSize(barraAltura * 1.2);
+        textAlign(CENTER, CENTER);
+        text("🪴", barraX + progression, barraY + barraAltura / 2);
+
+        // Text label
+        fill(0, 120);
+        textSize(13);
+        if (faseAtual >= maxFaseVisivel) {
+          text(`Máximo`, width / 2, barraY + barraAltura / 2);
+        } else {
+          text(`Fase: ${faseAtual} de ${maxFaseVisivel}`, width / 2, barraY + barraAltura / 2);
+        }
       } else {
-        // Telemóvel
-        barraLargura = 220;
-        barraAltura = 30;
-        barraX = width / 2 - barraLargura / 2;
-        barraY = 60;
-      }
+        // PC: barra como estava antes
+        let barraLargura = 500;
+        let barraAltura = 50;
+        let barraX = width / 2 - 250;
+        let barraY = 60;
 
-      // Modern rounded progress bar with shadow and emoji
-      let maxFaseVisivel = maxFases - 1; // Agora mostra até fase 5 de 5
-      let progression = map(faseAtual, 0, maxFaseVisivel, 0, barraLargura);
-      if (faseAtual >= maxFaseVisivel) progression = barraLargura;
+        let maxFaseVisivel = maxFases - 1;
+        let progression = map(faseAtual, 0, maxFaseVisivel, 0, barraLargura);
+        if (faseAtual >= maxFaseVisivel) progression = barraLargura;
 
-      // Shadow
-      push();
-      noStroke();
-      fill(0, 40);
-      rect(barraX, barraY + 6, barraLargura, barraAltura, barraAltura / 2);
-      pop();
+        // Shadow
+        push();
+        noStroke();
+        fill(0, 40);
+        rect(barraX, barraY + 6, barraLargura, barraAltura, barraAltura / 2);
+        pop();
 
-      // Background bar
-      noStroke();
-      fill(240);
-      rect(barraX, barraY, barraLargura, barraAltura, barraAltura / 2);
+        // Background bar
+        noStroke();
+        fill(240);
+        rect(barraX, barraY, barraLargura, barraAltura, barraAltura / 2);
 
-      // Progress bar (gradient green)
-      let grad = drawingContext.createLinearGradient(barraX, 0, barraX + progression, 0);
-      grad.addColorStop(0, '#43e97b');
-      grad.addColorStop(1, '#38f9d7');
-      drawingContext.save();
-      drawingContext.fillStyle = grad;
-      rect(barraX, barraY, progression, barraAltura, barraAltura / 2);
-      drawingContext.restore();
-      noStroke();
+        // Progress bar (gradient green)
+        let grad = drawingContext.createLinearGradient(barraX, 0, barraX + progression, 0);
+        grad.addColorStop(0, '#43e97b');
+        grad.addColorStop(1, '#38f9d7');
+        drawingContext.save();
+        drawingContext.fillStyle = grad;
+        rect(barraX, barraY, progression, barraAltura, barraAltura / 2);
+        drawingContext.restore();
 
-      // Border
-      stroke(80, 180, 120, 120);
-      strokeWeight(2);
-      noFill();
-      rect(barraX, barraY, barraLargura, barraAltura, barraAltura / 2);
+        // Border
+        stroke(80, 180, 120, 120);
+        strokeWeight(2);
+        noFill();
+        rect(barraX, barraY, barraLargura, barraAltura, barraAltura / 2);
 
-      // Plant emoji at the end of the bar
-      noStroke();
-      textSize(barraAltura * 1.2);
-      textAlign(CENTER, CENTER);
-      text("🪴", barraX + progression, barraY + barraAltura / 2);
+        // Plant emoji at the end of the bar
+        noStroke();
+        textSize(barraAltura * 1.2);
+        textAlign(CENTER, CENTER);
+        text("🪴", barraX + progression, barraY + barraAltura / 2);
 
-      // Text label
-      fill(0, 120);
-      textSize(windowWidth > 768 ? 22 : 14);
-      if (faseAtual >= maxFaseVisivel) {
-        text(`Máximo`, width / 2, barraY + barraAltura / 2);
-      } else {
-        text(`Fase: ${faseAtual} de ${maxFaseVisivel}`, width / 2, barraY + barraAltura / 2);
+        // Text label
+        fill(0, 120);
+        textSize(22);
+        if (faseAtual >= maxFaseVisivel) {
+          text(`Máximo`, width / 2, barraY + barraAltura / 2);
+        } else {
+          text(`Fase: ${faseAtual} de ${maxFaseVisivel}`, width / 2, barraY + barraAltura / 2);
+        }
       }
     }
   }
@@ -1083,7 +1125,8 @@ function drawButtons() {
 
   // Responsive button size and layout
   let buttonCount = labels.length;
-  let diameter = min(width, 320) / 3.2;
+  // Botões mais pequenos em telemóvel
+  let diameter = (windowWidth <= 768) ? min(width, 320) / 4.5 : min(width, 320) / 3.2;
   let spacing = width / (buttonCount + 1);
   let y = height - diameter + 20;
 
@@ -1189,6 +1232,11 @@ function drawButtons() {
   let invIcon = "📦"; // "🏺" caso queira trocar
   text(invIcon, invBtnX, invBtnY + 1);
   pop();
+
+  // --- Barra de progresso da tarefa ativa (sempre visível no fundo em telemóvel) ---
+  if (windowWidth <= 768) {
+    drawProgressBar();
+  }
 }
 
 // Salva o progresso no localStorage sempre que houver alteração
@@ -1433,6 +1481,9 @@ function updateProgress() {
 }
 
 function drawProgressBar() {
+  // Só desenha se o modo for válido
+  if (!mode || mode === "none" || typeof displayedProgress[mode] !== "number") return;
+
   let barWidth = width * 0.8;
   let barHeight = 30;
   let x = width * 0.1;
