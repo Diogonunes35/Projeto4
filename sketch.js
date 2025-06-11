@@ -802,9 +802,17 @@ for (let i = 0; i < planta.length; i++) {
     drawingContext.restore();
     pop();
 
-    // --- Card with shadow and rounded corners ---
-    let popupW = min(400, width * 0.92);
-    let popupH = min(340, height * 0.7);
+    // --- Grid de vasos 3x3: calcula tamanho para envolver todos os vasos ---
+    let gridRows = 3;
+    let gridCols = 3;
+    let cellPadding = 12;
+    let cellSize = min(width * 0.18, 80); // Tamanho máximo responsivo
+    let gridW = gridCols * cellSize + (gridCols - 1) * cellPadding;
+    let gridH = gridRows * cellSize + (gridRows - 1) * cellPadding;
+
+    // --- Caixa do inventário envolve o grid + espaço para título e emoji ---
+    let popupW = gridW + 76; // 38px de margem de cada lado
+    let popupH = gridH + 170; // espaço para título, emoji e divisória
     let popupX = width / 2 - popupW / 2;
     let popupY = height / 2 - popupH / 2;
 
@@ -840,24 +848,71 @@ for (let i = 0; i < planta.length; i++) {
     strokeWeight(1.5);
     line(popupX + 32, popupY + 108, popupX + popupW - 32, popupY + 108);
 
-    // Content
-    textAlign(LEFT, TOP);
-    textSize(18);
-    fill(60, 120, 80, 220);
-    textStyle(NORMAL);
-    let contentY = popupY + 120;
-    let flowerStr = (flowerType === "sunflower") ? "🌻 Girassol" : "🌼 Margarida";
-    let faseStr = (faseAtual >= maxFases - 1) ? "Máximo" : faseAtual;
-    text(
-      `• Vaso: 🏺 Padrão\n` +
-      `• Tipo de flor: ${flowerStr}\n` +
-      `• Fase atual: ${faseStr}`,
-      popupX + 38, contentY
-    );
+    // --- Grid centralizado dentro da caixa ---
+    let gridStartX = popupX + (popupW - gridW) / 2;
+    let gridStartY = popupY + 120;
 
-    // (Optional) Add more inventory items here, using similar style
+    // Detecta sobre que vaso está o rato
+    let hoveredVaso = null;
+    for (let row = 0; row < gridRows; row++) {
+      for (let col = 0; col < gridCols; col++) {
+        let idx = row * gridCols + col + 1;
+        let x = gridStartX + col * (cellSize + cellPadding) + cellSize / 2;
+        let y = gridStartY + row * (cellSize + cellPadding) + cellSize / 2;
+        // Verifica se o rato está sobre esta célula
+        if (
+          mouseX > x - cellSize / 2 &&
+          mouseX < x + cellSize / 2 &&
+          mouseY > y - cellSize * 0.35 &&
+          mouseY < y + cellSize * 0.35
+        ) {
+          hoveredVaso = { x, y, idx };
+        }
+      }
+    }
 
-    // Add exit button (same as in other menus)
+    // Desenha o destaque se o rato estiver sobre algum vaso
+    if (hoveredVaso) {
+      push();
+      rectMode(CENTER);
+      noStroke();
+      fill(80, 180, 120, 60); // cor de destaque suave
+      rect(hoveredVaso.x, hoveredVaso.y, cellSize + 10, cellSize * 0.7 + 10, 16);
+      pop();
+    }
+
+    // Agora desenha o grid normalmente
+    for (let row = 0; row < gridRows; row++) {
+      for (let col = 0; col < gridCols; col++) {
+        let idx = row * gridCols + col + 1;
+        let imgPath = `assets/pots/vaso${idx}.svg`;
+        let x = gridStartX + col * (cellSize + cellPadding) + cellSize / 2;
+        let y = gridStartY + row * (cellSize + cellPadding) + cellSize / 2;
+
+        if (!window["vasoImgs"]) window["vasoImgs"] = [];
+        if (!window["vasoImgs"][idx]) {
+          window["vasoImgs"][idx] = loadImage(imgPath);
+        }
+        let vasoImg = window["vasoImgs"][idx];
+        if (vasoImg && vasoImg.width > 0 && vasoImg.height > 0) {
+          imageMode(CENTER);
+          image(vasoImg, x, y, cellSize, cellSize * 0.7);
+        } else {
+          // Placeholder se não carregou
+          push();
+          rectMode(CENTER);
+          fill(230, 200, 180, 80);
+          rect(x, y, cellSize, cellSize * 0.7, 10);
+          fill(120);
+          textAlign(CENTER, CENTER);
+          textSize(16);
+          text(`Vaso ${idx}`, x, y);
+          pop();
+        }
+      }
+    }
+
+    // Exit button (same as in other menus)
     push();
     noStroke();
     fill(220, 60, 60, 230); // Red with some transparency
