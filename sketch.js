@@ -757,6 +757,19 @@ function mousePressed() {
   userStartAudio();
   startBackgroundMusic();
 
+  // Só alterna soundMode no menu 0
+  if (menu == 0 && dist(mouseX, mouseY, 40, 40) < 22) {
+    soundMode = (soundMode + 1) % 3; // 0 → 1 → 2 → 0 ...
+    if (backgroundMusic) {
+      if (soundMode === 0) {
+        backgroundMusic.play();
+      } else {
+        backgroundMusic.stop();
+      }
+    }
+    return; // Não abrir/fechar menus ao clicar no botão de som
+  }
+
   // If the plant is dead and the button is visible, reset everything
   if (showReviveButton && isDeadState) {
     if (
@@ -1237,7 +1250,7 @@ function updateProgress() {
         activePerformed = true;
         changed = true;
 
-        if (previousProgress < 100 && progress.sing >= 100 && completedSound) {
+        if (previousProgress < 100 && progress.sing >= 100 && (soundMode === 0 || soundMode === 1) && completedSound) {
           completedSound.play();
         }
 
@@ -1268,7 +1281,7 @@ function updateProgress() {
         activePerformed = true;
         changed = true;
 
-        if (previousProgress < 100 && progress.sunlight >= 100 && completedSound) {
+        if (previousProgress < 100 && progress.sunlight >= 100 && (soundMode === 0 || soundMode === 1) && completedSound) {
           completedSound.play();
         }
 
@@ -1290,7 +1303,7 @@ function updateProgress() {
         activePerformed = true;
         changed = true;
 
-        if (previousProgress < 100 && progress.water >= 100 && completedSound) {
+        if (previousProgress < 100 && progress.water >= 100 && (soundMode === 0 || soundMode === 1) && completedSound) {
           completedSound.play();
         }
 
