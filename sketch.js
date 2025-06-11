@@ -788,7 +788,7 @@ for (let i = 0; i < planta.length; i++) {
     push();
     rectMode(CENTER);
     noStroke();
-    fill(0, 180); // semi-transparent black
+    fill(255, 90); // semi-transparent black
     rect(width / 2, height / 2, 380, 180, 32);
     pop();
 
@@ -796,13 +796,10 @@ for (let i = 0; i < planta.length; i++) {
     push();
     textAlign(CENTER, CENTER);
     textSize(80);
-    fill(0, 60);
+    fill(0);
     text("🪴", width / 2 + 4, height / 2 - 32 + 4);
     pop();
 
-    // Emoji
-    textSize(80);
-    text("🪴", width / 2, height / 2 - 32);
 
     // Congratulatory message
     textSize(28);
@@ -850,7 +847,7 @@ for (let i = 0; i < planta.length; i++) {
 
     // Card
     push();
-    fill(255, 250);
+    fill(255, 90);
     stroke(80, 180, 120, 80);
     strokeWeight(2.5);
     rect(popupX, popupY, popupW, popupH, 36);
@@ -914,6 +911,18 @@ for (let i = 0; i < planta.length; i++) {
         let x = gridStartX + col * (cellSize + cellPadding) + cellSize / 2;
         let y = gridStartY + row * (cellSize + cellPadding) + cellSize / 2;
 
+        // --- Destaque do vaso selecionado ---
+        if (vasoSelecionado === idx) {
+          push();
+          rectMode(CENTER);
+          stroke(60, 180, 80, 220); // verde forte
+          strokeWeight(4);
+          fill(255, 255, 255, 0); // só borda
+          rect(x, y, cellSize + 16, cellSize * 0.7 + 16, 18);
+          pop();
+        }
+
+        // Desenha o vaso normalmente
         if (!window["vasoImgs"]) window["vasoImgs"] = [];
         if (!window["vasoImgs"][idx]) {
           window["vasoImgs"][idx] = loadImage(imgPath);
@@ -960,6 +969,59 @@ for (let i = 0; i < planta.length; i++) {
     line(52, 28, 28, 52);
     pop();
   }
+
+    // Mostra na consola quanto tempo falta para a planta ficar estragada (BAD)
+  if (!isBadState && !isDeadState) {
+    let tempoRestante = TEMPO_NORMAL_PARA_BAD - (Date.now() - lastCareTime);
+    if (tempoRestante > 0) {
+      let minutos = Math.floor(tempoRestante / 60000);
+      let segundos = Math.floor((tempoRestante % 60000) / 1000);
+      console.log(`Tempo até a planta ficar estragada: ${minutos}m ${segundos}s`);
+    } else {
+      console.log("A planta já devia estar estragada!");
+    }
+  }
+
+  if (isDeadState && showReviveButton) {
+    // Mensagem de planta morta
+    push();
+  rectMode(CENTER);
+  noStroke();
+  fill(255, 90);
+  rect(width / 2, height / 2 + 20, 380, 240, 32); // altura aumentada e centrada para envolver o botão
+  pop();
+
+  textAlign(CENTER, CENTER);
+  textSize(32);
+  fill(220, 60, 60);
+  textStyle(BOLD);
+  text("A tua planta morreu!", width / 2, height / 2 - 20);
+
+  textSize(18);
+  textStyle(NORMAL);
+  fill(220);
+  text("Clica no botão para recomeçar.", width / 2, height / 2 + 30);
+
+  // --- Botão de reiniciar ---
+  let btnX = width / 2;
+  let btnY = height / 2 + 70;
+  let btnW = 180;
+  let btnH = 48;
+  push();
+  rectMode(CENTER);
+  fill(60, 180, 80, 230); // verde
+  stroke(40, 120, 60);
+  strokeWeight(2.5);
+  rect(btnX, btnY, btnW, btnH, 18);
+  noStroke();
+  fill(255);
+  textSize(22);
+  textStyle(BOLD);
+  text("Reiniciar Planta", btnX, btnY + 2);
+  pop();
+}
+
+  
 }
 
 // Add this near your other global variables at the top:
@@ -990,11 +1052,15 @@ function mousePressed() {
 
   // If the plant is dead and the button is visible, reset everything
   if (showReviveButton && isDeadState) {
+    let btnX = width / 2;
+    let btnY = height / 2 + 70;
+    let btnW = 180;
+    let btnH = 48;
     if (
-      mouseX > width / 2 - 110 &&
-      mouseX < width / 2 + 110 &&
-      mouseY > height / 2 - 30 &&
-      mouseY < height / 2 + 30
+      mouseX > btnX - btnW / 2 &&
+      mouseX < btnX + btnW / 2 &&
+      mouseY > btnY - btnH / 2 &&
+      mouseY < btnY + btnH / 2
     ) {
       showReviveButton = false;
       isDeadState = false;
@@ -1078,6 +1144,20 @@ function keyPressed() {
   if (key === 'j' || key === 'J') {
     showTaskIntervals();
     return; // Return to prevent other key handlers from executing
+  }
+
+    if (key === 'g' || key === 'G') {
+    // Reseta todas as tarefas para 0%
+    progress = { sing: 0, sunlight: 0, water: 0 };
+    displayedProgress = { sing: 0, sunlight: 0, water: 0 };
+    lastTaskTime = {
+      sing: Date.now(),
+      sunlight: Date.now(),
+      water: Date.now()
+    };
+    saveProgressToCache();
+    localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
+    return;
   }
   
   if (key === 'r' || key === 'R') {
@@ -1841,6 +1921,7 @@ function showTaskIntervals() {
     let currentProgress = progress[task];
     let totalInterval = taskResetIntervals[task];
     
+       
     // Calculate decay rate (% per millisecond)
     let decayRate = taskResetRates[task] / 1000;
     
