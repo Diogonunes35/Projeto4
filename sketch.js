@@ -790,6 +790,84 @@ for (let i = 0; i < planta.length; i++) {
     fill(220);
     text("A tua planta cresceu para a próxima fase!", width / 2, height / 2 + 65);
   }
+
+  // --- INVENTORY POPUP (menu 4) ---
+  if (menu == 4) {
+    // --- Overlay with blur and shadow ---
+    push();
+    drawingContext.save();
+    drawingContext.filter = 'blur(2px)';
+    fill(0, 120);
+    rect(0, 0, width, height);
+    drawingContext.restore();
+    pop();
+
+    // --- Card with shadow and rounded corners ---
+    let popupW = min(400, width * 0.92);
+    let popupH = min(340, height * 0.7);
+    let popupX = width / 2 - popupW / 2;
+    let popupY = height / 2 - popupH / 2;
+
+    // Shadow
+    push();
+    noStroke();
+    fill(0, 60);
+    rect(popupX + 6, popupY + 10, popupW, popupH, 36);
+    pop();
+
+    // Card
+    push();
+    fill(255, 250);
+    stroke(80, 180, 120, 80);
+    strokeWeight(2.5);
+    rect(popupX, popupY, popupW, popupH, 36);
+    pop();
+
+    // Decorative top emoji
+    textAlign(CENTER, CENTER);
+    textSize(48);
+    text("📦", width / 2, popupY + 38);
+
+    // Title
+    textAlign(CENTER, CENTER);
+    textSize(26);
+    fill(60, 120, 80);
+    textStyle(BOLD);
+    text("Inventário", width / 2, popupY + 82);
+
+    // Divider line
+    stroke(200, 230, 210, 120);
+    strokeWeight(1.5);
+    line(popupX + 32, popupY + 108, popupX + popupW - 32, popupY + 108);
+
+    // Content
+    textAlign(LEFT, TOP);
+    textSize(18);
+    fill(60, 120, 80, 220);
+    textStyle(NORMAL);
+    let contentY = popupY + 120;
+    let flowerStr = (flowerType === "sunflower") ? "🌻 Girassol" : "🌼 Margarida";
+    let faseStr = (faseAtual >= maxFases - 1) ? "Máximo" : faseAtual;
+    text(
+      `• Vaso: 🏺 Padrão\n` +
+      `• Tipo de flor: ${flowerStr}\n` +
+      `• Fase atual: ${faseStr}`,
+      popupX + 38, contentY
+    );
+
+    // (Optional) Add more inventory items here, using similar style
+
+    // Add exit button (same as in other menus)
+    push();
+    noStroke();
+    fill(220, 60, 60, 230); // Red with some transparency
+    ellipse(40, 40, 44, 44); // Circle button
+    stroke(255);
+    strokeWeight(4);
+    line(28, 28, 52, 52); // X
+    line(52, 28, 28, 52);
+    pop();
+  }
 }
 
 // Add this near your other global variables at the top:
@@ -799,17 +877,23 @@ function mousePressed() {
   userStartAudio();
   startBackgroundMusic();
 
-  // Só alterna soundMode no menu 0
+  // Sound button toggle (already present)
   if (menu == 0 && dist(mouseX, mouseY, 40, 40) < 22) {
-    soundMode = (soundMode + 1) % 3; // 0 → 1 → 2 → 0 ...
+    soundMode = (soundMode + 1) % 3;
     if (backgroundMusic) {
-      if (soundMode === 0) {
-        backgroundMusic.play();
-      } else {
-        backgroundMusic.stop();
-      }
+      if (soundMode === 0) backgroundMusic.play();
+      else backgroundMusic.stop();
     }
-    return; // Não abrir/fechar menus ao clicar no botão de som
+    return;
+  }
+
+  // Inventory button (top right) - only opens the inventory
+  let invBtnX = width - 40;
+  let invBtnY = 40;
+  let invBtnR = 44;
+  if (menu == 0 && dist(mouseX, mouseY, invBtnX, invBtnY) < invBtnR / 2) {
+    menu = 4;
+    return;
   }
 
   // If the plant is dead and the button is visible, reset everything
@@ -885,6 +969,7 @@ function mousePressed() {
     }
   }
 
+  // Exit button (red X, top left) - closes any menu (including inventory)
   if (dist(mouseX, mouseY, 40, 40) < 22) {
     menu = 0;
     mode = "none";
