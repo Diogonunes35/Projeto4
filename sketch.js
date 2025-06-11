@@ -1199,28 +1199,35 @@ function updateProgress() {
     return;
   }
 
-  // Só decresce se não estiver a realizar nenhuma tarefa
-  if (mode === "none" && !activePerformed) {
-    let now = Date.now();
-    if (now - lastDecayTime >= 1000) { // a cada segundo
-      for (let key in progress) {
-        // Usa a taxa específica para cada tarefa
-        progress[key] = constrain(progress[key] - taskResetRates[key], 0, 100);
+  // --- NOVO: Atualiza o progresso de cada tarefa com base no tempo real passado ---
+  let now = Date.now();
+  for (let key in progress) {
+    // Só decresce se não estiver a realizar a tarefa
+    if (mode !== key) {
+      let elapsed = now - (lastTaskTime[key] || now);
+      if (elapsed > 0) {
+        // Decresce proporcionalmente ao tempo passado
+        let decay = (elapsed / 1000) * taskResetRates[key];
+        let newProgress = constrain(progress[key] - decay, 0, 100);
+        if (abs(newProgress - progress[key]) > 0.01) {
+          progress[key] = newProgress;
+          changed = true;
+        }
+        // Atualiza o lastTaskTime para agora, para não descontar de novo no próximo frame
+        lastTaskTime[key] = now;
       }
-      lastDecayTime = now;
-      changed = true;
     }
   }
 
   // Sensibilidade mais difícil:
-  const MIC_THRESHOLD = 0.05;      // Antes: 0.01 (agora precisa falar/cantar mais alto)
-  const CAMERA_BRIGHTNESS = 140;   // Antes: 100 (agora precisa de mais luz)
-  const TILT_THRESHOLD = 30;       // Antes: 20 (agora precisa inclinar mais)
+  const MIC_THRESHOLD = 0.05;
+  const CAMERA_BRIGHTNESS = 140;
+  const TILT_THRESHOLD = 30;
 
   // Só atualiza a tarefa ativa
   if (progress[mode] < 100) {
     let previousProgress = progress[mode];
-    
+
     if (mode === "sing") {
       let level = mic.getLevel();
       if (level > MIC_THRESHOLD) {
@@ -1229,12 +1236,11 @@ function updateProgress() {
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
         activePerformed = true;
         changed = true;
-        
-        // Check if task just reached 100%
+
         if (previousProgress < 100 && progress.sing >= 100 && completedSound) {
           completedSound.play();
         }
-        
+
         if (frameCount % 5 === 0) {
           musicalNotes.push({
             x: random(width),
@@ -1261,12 +1267,11 @@ function updateProgress() {
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
         activePerformed = true;
         changed = true;
-        
-        // Check if task just reached 100%
+
         if (previousProgress < 100 && progress.sunlight >= 100 && completedSound) {
           completedSound.play();
         }
-        
+
         if (frameCount % 5 === 0) {
           sunParticles.push({
             x: random(width),
@@ -1278,18 +1283,17 @@ function updateProgress() {
         }
       }
     } else if (mode === "water") {
-      if (abs(gamma) > TILT_THRESHOLD) {  // Check if device is tilted enough
+      if (abs(gamma) > TILT_THRESHOLD) {
         progress.water = constrain(progress.water + progressRate, 0, 100);
         lastTaskTime.water = Date.now();
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
         activePerformed = true;
         changed = true;
-        
-        // Check if task just reached 100%
+
         if (previousProgress < 100 && progress.water >= 100 && completedSound) {
           completedSound.play();
         }
-        
+
         if (frameCount % 5 === 0) {
           waterDroplets.push({
             x: random(width),
@@ -1326,7 +1330,7 @@ function updateProgress() {
 
   // NOVO: Só pode crescer se já passaram 24h desde o último crescimento
   let lastGrowthTime = parseInt(localStorage.getItem('lastGrowthTime')) || 0;
-  let canGrow = (Date.now() - lastGrowthTime) > (24 * 60 * 60 * 1000); // 24 hours in milliseconds
+  let canGrow = (Date.now() - lastGrowthTime) > (24 * 60 * 60 * 1000);
 
   // NOVO: Se todas as tarefas forem concluídas enquanto está bad, volta ao normal, mas não sobe de fase
   if (
@@ -1339,7 +1343,7 @@ function updateProgress() {
     isBadState = false;
     badSince = null;
     localStorage.removeItem('badSince');
-    vetoresFases = window.vetoresFases; // volta ao normal
+    vetoresFases = window.vetoresFases;
     gerarPlanta();
     completionMessage = "Planta recuperada!\nContinue a cuidar para subir de fase.";
     menu = 0;
@@ -1348,7 +1352,6 @@ function updateProgress() {
     localStorage.setItem('lastCareTime', lastCareTime);
     showReviveButton = false;
 
-    // Adicione esta linha para limpar a mensagem após 5 segundos
     setTimeout(() => {
       completionMessage = "";
     }, 5000);
@@ -1366,18 +1369,15 @@ function updateProgress() {
     canGrow &&
     completionMessage === ""
   ) {
-    // Só permite crescer se TODAS as tarefas estiverem >= 90% no momento do crescimento
-    // (impede que uma tarefa seja completada e as outras não, mesmo na fase 0)
     if (
       progress.sing >= 90 &&
       progress.sunlight >= 90 &&
       progress.water >= 90
     ) {
-      // Play level up sound
       if (levelUpSound) {
         levelUpSound.play();
       }
-      
+
       if (faseAtual === 0) {
         completionMessage = "Parabéns!\nA tua planta nasceu!";
       } else {
@@ -1390,13 +1390,6 @@ function updateProgress() {
           gerarPlanta();
           localStorage.setItem('faseAtual', faseAtual);
         }
-        // Remove this line that resets progress to zero
-        // progress = { sing: 0, sunlight: 0, water: 0 };
-        // displayedProgress = { sing: 0, sunlight: 0, water: 0 };
-        
-        // Instead, keep the current progress values
-        // (they're already saved in localStorage)
-        
         completionMessage = "";
         menu = 0;
         mode = "none";
@@ -1407,23 +1400,22 @@ function updateProgress() {
         isBadState = false;
         isDeadState = false;
         showReviveButton = false;
-        
-        // Update the last task times without resetting progress
+
         lastTaskTime = {
           sing: Date.now(),
           sunlight: Date.now(),
           water: Date.now()
         };
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
-        
-        // Make sure to save the current progress to cache
+
         saveProgressToCache();
-      }, 5000); 
+      }, 1500);
     }
   }
 
   if (changed) {
     saveProgressToCache();
+    localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
   }
 }
 
