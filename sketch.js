@@ -123,6 +123,13 @@ let backgroundMusic;
 let levelUpSound;
 let completedSound;
 
+let flowerType = "sunflower"; // sunflower ou daisy
+
+// Carregar do localStorage se existir
+if (localStorage.getItem('flowerType')) {
+  flowerType = localStorage.getItem('flowerType');
+}
+
 function preload() {
   // Load background music
   backgroundMusic = loadSound('assets/sound/background.mp3', 
@@ -141,7 +148,10 @@ function preload() {
     () => console.log("Task completed sound loaded successfully"),
     () => console.error("Failed to load task completed sound")
   );
-  
+
+  // Usa flowerType para definir o diretório base
+  let flowerDir = `assets/${flowerType}`;
+
   vetoresFases = [];
   for (let fase = 0; fase < maxFases; fase++) {
     let vetoresParaFase = [];
@@ -150,7 +160,7 @@ function preload() {
       // Não adiciona nenhuma imagem
     } else {
       for (let i = 0; i < 5; i++) {
-        let caminho = `assets/live/fase${fase - 1}/${i}.svg`; // -1 porque assets começam na antiga fase 1
+        let caminho = `${flowerDir}/live/fase${fase - 1}/${i}.svg`;
         let img = loadImage(
           caminho,
           () => console.log(`Imagem carregada: ${caminho}`),
@@ -169,7 +179,7 @@ function preload() {
     if (fase === 0) {
       window.vetoresFasesBad.push([]); // vazio
     } else {
-      let caminhoBad = `assets/bad/fase${fase - 1}.svg`;
+      let caminhoBad = `${flowerDir}/bad/fase${fase - 1}.svg`;
       let imgBad = loadImage(
         caminhoBad,
         () => console.log(`Imagem BAD carregada: ${caminhoBad}`),
@@ -183,7 +193,7 @@ function preload() {
     if (fase === 0) {
       window.vetoresFasesDead.push([]); // vazio
     } else {
-      let caminhoDead = `assets/dead/fase${fase - 1}.svg`;
+      let caminhoDead = `${flowerDir}/dead/fase${fase - 1}.svg`;
       let imgDead = loadImage(
         caminhoDead,
         () => console.log(`Imagem DEAD carregada: ${caminhoDead}`),
@@ -307,6 +317,10 @@ function inicializarDados() {
   maxFases = 6; // <-- Corrige para 6 fases (0 a 5)
   planta = [];
 
+  // Determina flowerType pela seed (par = sunflower, ímpar = daisy), mantendo 50% de chance
+  flowerType = (seed % 2 === 0) ? "sunflower" : "daisy";
+  localStorage.setItem('flowerType', flowerType);
+
   localStorage.setItem('plantaSeed', seed);
   localStorage.setItem('faseAtual', faseAtual);
   localStorage.setItem('maxFases', maxFases); // <-- Corrige para 6 fases
@@ -392,10 +406,6 @@ function draw() {
       let segundos = Math.ceil(tempoRestante / 1000);
       let min = Math.floor(segundos / 60);
       let sec = segundos % 60;
-      // Mostra na consola
-      console.log(
-        `Tempo até a planta ficar estragada: ${min}:${sec.toString().padStart(2, '0')}`
-      );
     }
   } else if (isBadState && !isDeadState && badSince) {
     let tempoRestante = TEMPO_BAD_PARA_DEAD - (Date.now() - badSince);
@@ -403,9 +413,6 @@ function draw() {
       let segundos = Math.ceil(tempoRestante / 1000);
       let min = Math.floor(segundos / 60);
       let sec = segundos % 60;
-      console.log(
-        `Tempo até a planta morrer: ${min}:${sec.toString().padStart(2, '0')}`
-      );
     }
   }
 
@@ -683,9 +690,6 @@ for (let i = 0; i < planta.length; i++) {
     fill(220);
     text("A tua planta cresceu para a próxima fase!", width / 2, height / 2 + 65);
   }
-  
-
-  console.log(progress.sunlight)
 }
 
 // Add this near your other global variables at the top:
@@ -693,78 +697,77 @@ let soundMode = 2; // 0 = all on, 1 = music off, 2 = all muted
 
 function mousePressed() {
   userStartAudio();
-  // Only start music if soundMode is 0 (all on)
-  if (soundMode === 0) {
-    startBackgroundMusic();
-  }
-  
-  // --- SOUND BUTTON CLICK HANDLER (main menu only) ---
-  if (menu == 0 && !isDeadState) {
-    let btnX = 40, btnY = 40, btnR = 44;
-    if (dist(mouseX, mouseY, btnX, btnY) < btnR / 2) {
-      soundMode = (soundMode + 1) % 3;
-      // Set volumes accordingly
-      if (soundMode === 0) {
-        if (backgroundMusic) backgroundMusic.setVolume(0.5);
-        if (levelUpSound) levelUpSound.setVolume(1);
-        if (completedSound) completedSound.setVolume(1);
-        // Start music if not already playing
-        if (backgroundMusic && !backgroundMusic.isPlaying()) {
-          backgroundMusic.play();
-        }
-      } else if (soundMode === 1) {
-        if (backgroundMusic) backgroundMusic.setVolume(0);
-        if (levelUpSound) levelUpSound.setVolume(1);
-        if (completedSound) completedSound.setVolume(1);
-        // Pause music if playing
-        if (backgroundMusic && backgroundMusic.isPlaying()) {
-          backgroundMusic.pause();
-        }
-      } else if (soundMode === 2) {
-        if (backgroundMusic) backgroundMusic.setVolume(0);
-        if (levelUpSound) levelUpSound.setVolume(0);
-        if (completedSound) completedSound.setVolume(0);
-        // Pause music if playing
-        if (backgroundMusic && backgroundMusic.isPlaying()) {
-          backgroundMusic.pause();
-        }
-      }
-      return; // Prevents triggering other buttons
-    }
+  startBackgroundMusic();
 
-    // --- INVENTORY BUTTON CLICK HANDLER (top right) ---
-    let invBtnX = width - 40;
-    let invBtnY = 40;
-    let invBtnR = 44;
-    if (dist(mouseX, mouseY, invBtnX, invBtnY) < invBtnR / 2) {
-      // For now, just log to console
-      console.log("Inventory button clicked!");
-      // Later: open inventory popup here
-      return;
+  // If the plant is dead and the button is visible, reset everything
+  if (showReviveButton && isDeadState) {
+    if (
+      mouseX > width / 2 - 110 &&
+      mouseX < width / 2 + 110 &&
+      mouseY > height / 2 - 30 &&
+      mouseY < height / 2 + 30
+    ) {
+      showReviveButton = false;
+      isDeadState = false;
+      isBadState = false;
+      badSince = null;
+      limparLocalStorage();
+      inicializarDados();
+      faseAtual = 0;
+      localStorage.setItem('faseAtual', faseAtual);
+
+      // Limpa a planta e não gera nada
+      planta = [];
+      localStorage.setItem('planta', JSON.stringify([]));
+
+      // Garante que vetoresFases está correto (fase 0 vazia)
+      let flowerDir = `assets/${flowerType}`;
+      vetoresFases = [];
+      for (let fase = 0; fase < maxFases; fase++) {
+        let vetoresParaFase = [];
+        // Fase 0 deve ser SEM IMAGEM
+        if (fase !== 0) {
+          for (let i = 0; i < 5; i++) {
+            let caminho = `${flowerDir}/live/fase${fase}/${i}.svg`;
+            let img = loadImage(
+              caminho,
+              () => {},
+              () => {}
+            );
+            vetoresParaFase.push(img);
+          }
+        }
+        vetoresFases.push(vetoresParaFase);
+      }
+      // NÃO chama gerarPlanta() aqui!
+      lastCareTime = Date.now();
+      localStorage.setItem('lastCareTime', lastCareTime);
+      localStorage.removeItem('badSince');
+
+      // Faz refresh à página para garantir reset total
+      window.location.reload();
     }
   }
 
   let labels = ["sing", "sunlight", "water"];
   let diameter = min(width, 320) / 3.2;
   let spacing = width / (labels.length + 1);
-  let btnY = height - diameter - 30;
+  let btnY = height - diameter + 20;
   for (let i = 0; i < labels.length; i++) {
     let btnX = spacing * (i + 1);
     let dx = mouseX - btnX;
     let dy = mouseY - btnY;
     if (menu == 0 && !isDeadState) {
+      console.log('Clique detetado no botão:', labels[i]);
       if (dx * dx + dy * dy < (diameter / 2) * (diameter / 2)) {
+        console.log('Botão clicado:', labels[i], 'Menu antes:', menu);
         mode = labels[i];
         if (labels[i] === "sing") menu = 1;
         if (labels[i] === "sunlight") menu = 2;
-        if (labels[i] === "water") {
-          menu = 3;
-          // DEBUG: Complete water task instantly
-          progress.water = 100;
-          displayedProgress.water = 100;
-          saveProgressToCache();
-        }
+        if (labels[i] === "water") menu = 3;
         completionMessage = "";
+        console.log('Menu depois:', menu);
+        break; // <-- SAI DO CICLO ASSIM QUE UM BOTÃO É CLICADO
       }
     }
   }
@@ -824,11 +827,12 @@ function keyPressed() {
       isBadState = false;
       badSince = null;
       localStorage.removeItem('badSince');
+      let flowerDir = `assets/${flowerType}`;
       vetoresFases = [];
       for (let fase = 0; fase < maxFases; fase++) {
         let vetoresParaFase = [];
         for (let i = 0; i < 5; i++) {
-          let caminho = `assets/live/fase${fase}/${i}.svg`;
+          let caminho = `${flowerDir}/live/fase${fase}/${i}.svg`;
           let img = loadImage(
             caminho,
             () => {},
@@ -849,6 +853,10 @@ function keyPressed() {
     } else {
       console.log("Você já atingiu o número máximo de fases.");
     }
+  }
+
+    if (key === 'h' || key === 'H') {
+    setFlorMax();
   }
 }
 
@@ -1134,13 +1142,18 @@ function updateProgress() {
     }
   }
 
+  // Sensibilidade mais difícil:
+  const MIC_THRESHOLD = 0.05;      // Antes: 0.01 (agora precisa falar/cantar mais alto)
+  const CAMERA_BRIGHTNESS = 140;   // Antes: 100 (agora precisa de mais luz)
+  const TILT_THRESHOLD = 30;       // Antes: 20 (agora precisa inclinar mais)
+
   // Só atualiza a tarefa ativa
   if (progress[mode] < 100) {
     let previousProgress = progress[mode];
     
     if (mode === "sing") {
       let level = mic.getLevel();
-      if (level > 0.01) {
+      if (level > MIC_THRESHOLD) {
         progress.sing = constrain(progress.sing + progressRate, 0, 100);
         lastTaskTime.sing = Date.now();
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
@@ -1172,7 +1185,7 @@ function updateProgress() {
         avg += (capture.pixels[i] + capture.pixels[i + 1] + capture.pixels[i + 2]) / 3;
       }
       avg /= (capture.pixels.length / 4);
-      if (avg > 100) {
+      if (avg > CAMERA_BRIGHTNESS) {
         progress.sunlight = constrain(progress.sunlight + progressRate, 0, 100);
         lastTaskTime.sunlight = Date.now();
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
@@ -1195,7 +1208,7 @@ function updateProgress() {
         }
       }
     } else if (mode === "water") {
-      if (abs(gamma) > 20) {  // Check if device is tilted enough
+      if (abs(gamma) > TILT_THRESHOLD) {  // Check if device is tilted enough
         progress.water = constrain(progress.water + progressRate, 0, 100);
         lastTaskTime.water = Date.now();
         localStorage.setItem('lastTaskTime', JSON.stringify(lastTaskTime));
@@ -1493,3 +1506,15 @@ function startBackgroundMusic() {
   }
 }
 
+
+// Função para colocar a flor no nível máximo (chamar na consola: setFlorMax())
+function setFlorMax() {
+  faseAtual = maxFases - 1;
+  localStorage.setItem('faseAtual', faseAtual);
+  gerarPlanta();
+  completionMessage = "A flor está agora no nível máximo!";
+  // Atualiza o progresso das tarefas para 100%
+  progress = { sing: 100, sunlight: 100, water: 100 };
+  displayedProgress = { sing: 100, sunlight: 100, water: 100 };
+  saveProgressToCache();
+}
